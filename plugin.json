@@ -1,0 +1,23 @@
+{
+  "name": "ralph-workflow",
+  "version": "2.0.0",
+  "description": "AI-driven development workflow with self-referential loops. Complete pipeline: PRD → Solution Design → Stories → Autonomous Execution",
+  "author": "gbp10",
+  "repository": "https://github.com/gbp10/ralph-workflow",
+
+  "skills": [
+    "skills/create-prd",
+    "skills/design-solution",
+    "skills/solution-to-stories",
+    "skills/ralph-loop",
+    "skills/ralph-pipeline",
+    "skills/advance-story"
+  ],
+
+  "commands": [
+    "commands/cancel-ralph.md",
+    "commands/ralph-loop.md"
+  ],
+
+  "hooks": "hooks/hooks.json"
+}

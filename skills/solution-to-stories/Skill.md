@@ -169,7 +169,7 @@ The JSON output includes new fields for blueprint integration:
 
 ## Full Documentation
 
-See `.claude/ralph-workflow/templates/PRD_TO_JSON.md` for:
+See `${CLAUDE_PLUGIN_ROOT}/templates/PRD_TO_JSON.md` for:
 - Complete JSON schema with all fields
 - Token estimation formulas
 - Story splitting guidelines
@@ -182,7 +182,7 @@ See `.claude/ralph-workflow/templates/PRD_TO_JSON.md` for:
 After stories are generated:
 
 ```bash
-./.claude/ralph-workflow/scripts/ralph-orchestrator.sh .claude/ralph-workflow/stories/[feature-name].json
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh .claude/ralph-workflow/stories/[feature-name].json
 ```
 
 This executes stories via ralph-loop in the sequence defined by `execution_order`.

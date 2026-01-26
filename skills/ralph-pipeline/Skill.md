@@ -27,19 +27,19 @@ This skill chains all 4 phases of the Ralph workflow:
 
 ```bash
 # Basic usage
-./.claude/ralph-workflow/scripts/ralph-full-pipeline.sh "Add user authentication with JWT"
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-full-pipeline.sh "Add user authentication with JWT"
 
 # With feature name
-./.claude/ralph-workflow/scripts/ralph-full-pipeline.sh --feature-name "user-auth" "Add user auth"
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-full-pipeline.sh --feature-name "user-auth" "Add user auth"
 
 # From a document
-./.claude/ralph-workflow/scripts/ralph-full-pipeline.sh --from-doc docs/requirements/auth.md
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-full-pipeline.sh --from-doc docs/requirements/auth.md
 
 # Skip phases (if some already complete)
-./.claude/ralph-workflow/scripts/ralph-full-pipeline.sh --feature-name "user-auth" --skip prd,solution
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-full-pipeline.sh --feature-name "user-auth" --skip prd,solution
 
 # Control max iterations per story
-MAX_ITERATIONS=30 ./.claude/ralph-workflow/scripts/ralph-full-pipeline.sh "Feature description"
+MAX_ITERATIONS=30 ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-full-pipeline.sh "Feature description"
 ```
 
 ### From Within Claude Code (This Skill)
@@ -51,7 +51,7 @@ When this skill is invoked, provide:
 Then execute:
 
 ```bash
-./.claude/ralph-workflow/scripts/ralph-full-pipeline.sh --feature-name "[feature-name]" "[description]"
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-full-pipeline.sh --feature-name "[feature-name]" "[description]"
 ```
 
 ---
@@ -146,7 +146,7 @@ The entire pipeline runs with `--dangerously-skip-permissions`:
 
 ```bash
 # Trigger full pipeline for a user authentication feature
-./.claude/ralph-workflow/scripts/ralph-full-pipeline.sh \
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-full-pipeline.sh \
     --feature-name "user-auth" \
     "Add user authentication with JWT tokens, refresh token rotation,
      password reset flow, and email verification. Include rate limiting

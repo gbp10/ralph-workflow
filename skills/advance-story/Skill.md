@@ -59,5 +59,5 @@ For best results, start a new Claude session for the next story to get fresh con
 Use the orchestrator script for fully automated multi-story execution:
 
 ```bash
-.claude/ralph-workflow/scripts/ralph-orchestrator.sh .claude/ralph-workflow/stories/[feature].json
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh .claude/ralph-workflow/stories/[feature].json
 ```

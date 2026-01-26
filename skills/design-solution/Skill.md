@@ -54,7 +54,7 @@ Complete each area and save findings to the specified file:
 
 ### Research Document Template
 
-Use the templates from `.claude/ralph-workflow/templates/RESEARCH_TEMPLATES.md`
+Use the templates from `${CLAUDE_PLUGIN_ROOT}/templates/RESEARCH_TEMPLATES.md`
 
 Each research document must include:
 - Investigation scope (what was examined)
@@ -195,7 +195,7 @@ Design the solution architecture layer by layer, producing actionable guidance f
 
 ### Blueprint Structure
 
-Use template from: `.claude/ralph-workflow/templates/IMPLEMENTATION_BLUEPRINT.md`
+Use template from: `${CLAUDE_PLUGIN_ROOT}/templates/IMPLEMENTATION_BLUEPRINT.md`
 
 Save to: `.kiro/specs/[feature-name]/implementation-blueprint.md`
 
@@ -291,5 +291,5 @@ This will consume the blueprint and generate INVEST-validated user stories with:
 Then execute with:
 
 ```bash
-./ralph-orchestrator.sh .claude/ralph-workflow/stories/[feature-name].json
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh .claude/ralph-workflow/stories/[feature-name].json
 ```

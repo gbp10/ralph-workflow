@@ -2,20 +2,45 @@
 
 A complete AI-driven development workflow for Claude Code, featuring self-referential iteration loops, research-first solution design, and PRD-to-execution pipelines.
 
-## What's Inside
+## Installation
 
-This repo contains two components:
+```bash
+# Install the Ralph Workflow plugin
+claude /install-plugin https://github.com/gbp10/ralph-workflow
+```
 
-### 1. `plugin/` - Ralph Loop Plugin
-A Claude Code plugin that enables self-referential iterative development. Install it globally to use `/ralph-loop` in any project.
+This installs all skills, commands, and hooks globally.
 
-### 2. `workflow-template/` - Full PRD Workflow
-A complete workflow template with:
-- PRD creation skills (research-first approach)
-- **NEW:** Solution design with mandatory research (`/design-solution`)
-- Story conversion from blueprints (`/solution-to-stories`)
-- Ralph loop integration for autonomous execution
-- Multi-story orchestrator for end-to-end feature development
+---
+
+## Plugin Structure
+
+```
+ralph-workflow/
+├── plugin.json           # Plugin manifest
+├── skills/               # All skills
+│   ├── create-prd/       # PRD creation (research-first)
+│   ├── design-solution/  # Solution design with mandatory research
+│   ├── solution-to-stories/ # Blueprint → user stories
+│   ├── ralph-loop/       # Self-referential iteration loop
+│   ├── ralph-pipeline/   # End-to-end workflow trigger
+│   └── advance-story/    # Story advancement helper
+├── commands/             # User commands
+│   ├── cancel-ralph.md   # Cancel active loop
+│   └── ralph-loop.md     # Start loop command
+├── hooks/                # Event hooks
+│   ├── hooks.json        # Hook configuration
+│   └── stop-hook.sh      # Stop hook for loop control
+├── scripts/              # Automation scripts
+│   ├── ralph-loop.sh     # Loop setup script
+│   ├── ralph-orchestrator.sh  # Multi-story runner
+│   └── ralph-full-pipeline.sh # End-to-end pipeline
+└── templates/            # Reference templates
+    ├── CREATE_PRD.md     # PRD template
+    ├── PRD_TO_JSON.md    # Story conversion guide
+    ├── RESEARCH_TEMPLATES.md  # Research area templates
+    └── IMPLEMENTATION_BLUEPRINT.md # Blueprint template
+```
 
 ---
 
@@ -39,27 +64,20 @@ A complete workflow template with:
 
 ## Quick Start
 
-### Option A: Install Plugin Only
+### Option A: Run Full Pipeline (Autonomous)
 
 ```bash
-# Install the Ralph Loop plugin
-claude /install-plugin https://github.com/gbp10/ralph-workflow/tree/main/plugin
+# End-to-end: PRD → Solution → Stories → Execute
+/ralph-pipeline "Add user authentication with JWT"
 ```
 
-Then use it anywhere:
+Or via script:
 ```bash
-/ralph-loop Build a REST API --completion-promise 'DONE' --max-iterations 20
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-full-pipeline.sh "Add user authentication"
 ```
 
-### Option B: Use Full Workflow Template
+### Option B: Run Each Phase Manually
 
-Copy the workflow template to your project:
-```bash
-cp -r workflow-template/.claude your-project/
-cp -r workflow-template/.kiro your-project/
-```
-
-Then run the complete pipeline:
 ```bash
 # Phase 1: Create a PRD (research-first)
 /create-prd "Add user authentication feature"
@@ -71,10 +89,15 @@ Then run the complete pipeline:
 /solution-to-stories
 
 # Phase 4: Execute all stories autonomously
-.claude/ralph-workflow/scripts/ralph-orchestrator.sh
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh
 ```
 
-**Note:** The orchestrator runs with `--dangerously-skip-permissions` for fully autonomous execution without user approval prompts.
+### Option C: Just Use Ralph Loop
+
+```bash
+# Simple iterative development
+/ralph-loop Build a REST API --completion-promise 'DONE' --max-iterations 20
+```
 
 ---
 
@@ -114,7 +137,7 @@ Ralph is a **self-referential feedback system**:
 │                  YES          NO                           │
 │                   ↓            ↓                           │
 │            ┌──────────┐  ┌───────────────┐                │
-│            │  EXIT ✓  │  │ Feed same     │                │
+│            │  EXIT    │  │ Feed same     │                │
 │            │          │  │ prompt back   │──────┐         │
 │            └──────────┘  └───────────────┘      │         │
 │                                    ↑             │         │
@@ -125,7 +148,7 @@ Ralph is a **self-referential feedback system**:
 
 ---
 
-## The Four-Phase Workflow Details
+## Phase Details
 
 ### Phase 1: Create PRD (`/create-prd`)
 
@@ -137,7 +160,7 @@ Research-first approach:
 
 Output: `.kiro/specs/[feature]/requirements.md`
 
-### Phase 2: Design Solution (`/design-solution`) ⭐ NEW
+### Phase 2: Design Solution (`/design-solution`)
 
 **Research Phase (9 mandatory areas):**
 1. Codebase Patterns - naming, conventions, design patterns
@@ -177,16 +200,9 @@ Output: `.claude/ralph-workflow/stories/[feature].json`
 
 ### Phase 4: Execute with Ralph
 
-Two options:
-
-**Manual (per story):**
-```bash
-/ralph-loop "Implement US-001" --completion-promise "US-001 COMPLETE" --max-iterations 20
-```
-
 **Automated (all stories) - RECOMMENDED:**
 ```bash
-.claude/ralph-workflow/scripts/ralph-orchestrator.sh
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh
 ```
 
 The orchestrator:
@@ -196,38 +212,30 @@ The orchestrator:
 - Commits progress between stories
 - Clears context for fresh sessions
 
+**Manual (per story):**
+```bash
+/ralph-loop "Implement US-001" --completion-promise "US-001 COMPLETE" --max-iterations 20
+```
+
 ---
 
-## Directory Structure
+## Output Locations (User's Project)
+
+When the workflow runs, it creates files in your project:
 
 ```
 your-project/
 ├── .claude/
-│   ├── skills/
-│   │   ├── create-prd/Skill.md         # PRD creation skill
-│   │   ├── design-solution/Skill.md    # Solution design skill ⭐ NEW
-│   │   ├── solution-to-stories/Skill.md # Story conversion skill
-│   │   ├── ralph-loop/Skill.md         # Loop skill
-│   │   └── advance-story/Skill.md      # Story advancement
 │   └── ralph-workflow/
-│       ├── scripts/
-│       │   ├── ralph-loop.sh           # Loop setup
-│       │   └── ralph-orchestrator.sh   # Multi-story runner
-│       ├── templates/
-│       │   ├── CREATE_PRD.md           # PRD template
-│       │   ├── PRD_TO_JSON.md          # Conversion guide
-│       │   ├── RESEARCH_TEMPLATES.md   # Research templates ⭐ NEW
-│       │   └── IMPLEMENTATION_BLUEPRINT.md # Blueprint template ⭐ NEW
-│       ├── knowledge/                  # Project knowledge files
 │       ├── prompts/
-│       │   └── CURRENT_TASK.md         # Active task (generated)
+│       │   └── CURRENT_TASK.md      # Active task (generated)
 │       └── stories/
-│           └── [feature].json          # User story files
+│           └── [feature].json       # User story files
 └── .kiro/
     └── specs/
         └── [feature]/
-            ├── requirements.md          # PRD output
-            ├── research/                # Research documents ⭐ NEW
+            ├── requirements.md       # PRD output
+            ├── research/             # Research documents
             │   ├── codebase-patterns.md
             │   ├── architecture.md
             │   ├── database.md
@@ -239,8 +247,8 @@ your-project/
             │   └── ui-ux/
             │       ├── analysis.md
             │       └── screenshots/
-            ├── research-synthesis.md    # Synthesis ⭐ NEW
-            └── implementation-blueprint.md # Blueprint ⭐ NEW
+            ├── research-synthesis.md # Synthesis
+            └── implementation-blueprint.md # Blueprint
 ```
 
 ---

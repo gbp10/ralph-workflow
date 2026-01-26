@@ -14,9 +14,10 @@
 set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WORKFLOW_DIR="$(dirname "$SCRIPT_DIR")"
-PROJECT_DIR="$(dirname "$(dirname "$WORKFLOW_DIR")")"
-LOG_FILE="$WORKFLOW_DIR/ralph-pipeline.log"
+PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_DIR="$(pwd)"
+RALPH_DIR="$PROJECT_DIR/.claude/ralph-workflow"
+LOG_FILE="$RALPH_DIR/ralph-pipeline.log"
 
 # Colors
 GREEN='\033[0;32m'
@@ -326,7 +327,9 @@ summary() {
 }
 
 main() {
-    cd "$PROJECT_DIR"
+    # Ensure ralph-workflow directories exist
+    mkdir -p "$RALPH_DIR/stories" "$RALPH_DIR/prompts"
+
     parse_args "$@"
     banner
     check_dependencies
