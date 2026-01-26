@@ -1,6 +1,6 @@
 # Ralph Workflow
 
-A complete AI-driven development workflow for Claude Code, featuring self-referential iteration loops and PRD-to-execution pipelines.
+A complete AI-driven development workflow for Claude Code, featuring self-referential iteration loops, research-first solution design, and PRD-to-execution pipelines.
 
 ## What's Inside
 
@@ -12,9 +12,28 @@ A Claude Code plugin that enables self-referential iterative development. Instal
 ### 2. `workflow-template/` - Full PRD Workflow
 A complete workflow template with:
 - PRD creation skills (research-first approach)
-- PRD-to-JSON conversion (INVEST-validated user stories)
+- **NEW:** Solution design with mandatory research (`/design-solution`)
+- Story conversion from blueprints (`/solution-to-stories`)
 - Ralph loop integration for autonomous execution
 - Multi-story orchestrator for end-to-end feature development
+
+---
+
+## The Four-Phase Pipeline
+
+```
+/create-prd → /design-solution → /solution-to-stories → ralph-orchestrator
+     ↓              ↓                    ↓                    ↓
+   WHAT          HOW               WHAT TO DO            EXECUTE
+ (requirements) (blueprint)        (stories)            (loops)
+```
+
+| Phase | Skill | Input | Output |
+|-------|-------|-------|--------|
+| 1 | `/create-prd` | Feature idea | `.kiro/specs/[feature]/requirements.md` |
+| 2 | `/design-solution` | PRD | `.kiro/specs/[feature]/implementation-blueprint.md` |
+| 3 | `/solution-to-stories` | Blueprint | `.claude/ralph-workflow/stories/[feature].json` |
+| 4 | `ralph-orchestrator.sh` | Stories JSON | Implemented feature |
 
 ---
 
@@ -40,20 +59,22 @@ cp -r workflow-template/.claude your-project/
 cp -r workflow-template/.kiro your-project/
 ```
 
-Then use the skills:
+Then run the complete pipeline:
 ```bash
-# Create a PRD
+# Phase 1: Create a PRD (research-first)
 /create-prd "Add user authentication feature"
 
-# Convert to user stories
-/prd-to-json
+# Phase 2: Design the solution (mandatory research + blueprint)
+/design-solution
 
-# Execute with Ralph
-/ralph-loop "Implement US-001" --completion-promise "US-001 COMPLETE"
+# Phase 3: Convert blueprint to user stories
+/solution-to-stories
 
-# Or run the orchestrator for all stories
+# Phase 4: Execute all stories autonomously
 .claude/ralph-workflow/scripts/ralph-orchestrator.sh
 ```
+
+**Note:** The orchestrator runs with `--dangerously-skip-permissions` for fully autonomous execution without user approval prompts.
 
 ---
 
@@ -104,7 +125,7 @@ Ralph is a **self-referential feedback system**:
 
 ---
 
-## The Three-Phase Workflow
+## The Four-Phase Workflow Details
 
 ### Phase 1: Create PRD (`/create-prd`)
 
@@ -116,17 +137,45 @@ Research-first approach:
 
 Output: `.kiro/specs/[feature]/requirements.md`
 
-### Phase 2: Convert to Stories (`/prd-to-json`)
+### Phase 2: Design Solution (`/design-solution`) ⭐ NEW
 
-INVEST-validated conversion:
-1. Validate each story against INVEST criteria
-2. Write Gherkin acceptance criteria (Given/When/Then)
-3. Estimate token budgets for execution
-4. Split large stories that exceed budget
+**Research Phase (9 mandatory areas):**
+1. Codebase Patterns - naming, conventions, design patterns
+2. Architecture Mapping - module boundaries, where feature fits
+3. Database/Data Model - schemas, migrations, relationships
+4. API Surface - routes, contracts, versioning
+5. Dependency Analysis - packages, external services
+6. Security Constraints - auth, data sensitivity, compliance
+7. Performance Baselines - SLAs, bottlenecks, metrics
+8. Prior Art - git history, related PRs, tech debt
+9. UI/UX Analysis - browser-based screen capture and flow tracing
+
+**Synthesis Phase:**
+- Identify conflicts between findings
+- Document gaps with explicit assumptions
+- Consolidate constraints by category
+
+**Blueprint Creation:**
+- Layer-centric design (Data → Service → API → UI)
+- Constraints + Suggested Files per layer
+- Story sequencing recommendations
+
+Output: `.kiro/specs/[feature]/implementation-blueprint.md`
+
+### Phase 3: Convert to Stories (`/solution-to-stories`)
+
+Blueprint-aware conversion:
+1. Validate blueprint exists with all sections
+2. Extract constraints and embed in stories
+3. Validate each story against INVEST criteria
+4. Write Gherkin acceptance criteria (Given/When/Then)
+5. Estimate token budgets for execution
+6. Group stories by architectural layer
+7. Set execution order based on blueprint
 
 Output: `.claude/ralph-workflow/stories/[feature].json`
 
-### Phase 3: Execute with Ralph
+### Phase 4: Execute with Ralph
 
 Two options:
 
@@ -135,10 +184,17 @@ Two options:
 /ralph-loop "Implement US-001" --completion-promise "US-001 COMPLETE" --max-iterations 20
 ```
 
-**Automated (all stories):**
+**Automated (all stories) - RECOMMENDED:**
 ```bash
 .claude/ralph-workflow/scripts/ralph-orchestrator.sh
 ```
+
+The orchestrator:
+- Loads stories from JSON
+- Executes in layer order (Data → Service → API → UI)
+- Runs with `--dangerously-skip-permissions` (no approval prompts)
+- Commits progress between stories
+- Clears context for fresh sessions
 
 ---
 
@@ -148,26 +204,43 @@ Two options:
 your-project/
 ├── .claude/
 │   ├── skills/
-│   │   ├── create-prd/Skill.md      # PRD creation skill
-│   │   ├── prd-to-json/Skill.md     # Story conversion skill
-│   │   ├── ralph-loop/Skill.md      # Loop skill
-│   │   └── advance-story/Skill.md   # Story advancement
+│   │   ├── create-prd/Skill.md         # PRD creation skill
+│   │   ├── design-solution/Skill.md    # Solution design skill ⭐ NEW
+│   │   ├── solution-to-stories/Skill.md # Story conversion skill
+│   │   ├── ralph-loop/Skill.md         # Loop skill
+│   │   └── advance-story/Skill.md      # Story advancement
 │   └── ralph-workflow/
 │       ├── scripts/
-│       │   ├── ralph-loop.sh        # Loop setup
-│       │   └── ralph-orchestrator.sh # Multi-story runner
+│       │   ├── ralph-loop.sh           # Loop setup
+│       │   └── ralph-orchestrator.sh   # Multi-story runner
 │       ├── templates/
-│       │   ├── CREATE_PRD.md        # PRD template
-│       │   └── PRD_TO_JSON.md       # Conversion guide
-│       ├── knowledge/               # Project knowledge files
+│       │   ├── CREATE_PRD.md           # PRD template
+│       │   ├── PRD_TO_JSON.md          # Conversion guide
+│       │   ├── RESEARCH_TEMPLATES.md   # Research templates ⭐ NEW
+│       │   └── IMPLEMENTATION_BLUEPRINT.md # Blueprint template ⭐ NEW
+│       ├── knowledge/                  # Project knowledge files
 │       ├── prompts/
-│       │   └── CURRENT_TASK.md      # Active task (generated)
+│       │   └── CURRENT_TASK.md         # Active task (generated)
 │       └── stories/
-│           └── [feature].json       # User story files
+│           └── [feature].json          # User story files
 └── .kiro/
     └── specs/
         └── [feature]/
-            └── requirements.md       # PRD output
+            ├── requirements.md          # PRD output
+            ├── research/                # Research documents ⭐ NEW
+            │   ├── codebase-patterns.md
+            │   ├── architecture.md
+            │   ├── database.md
+            │   ├── api-surface.md
+            │   ├── dependencies.md
+            │   ├── security.md
+            │   ├── performance.md
+            │   ├── prior-art.md
+            │   └── ui-ux/
+            │       ├── analysis.md
+            │       └── screenshots/
+            ├── research-synthesis.md    # Synthesis ⭐ NEW
+            └── implementation-blueprint.md # Blueprint ⭐ NEW
 ```
 
 ---
@@ -200,6 +273,13 @@ Every story must be:
 - **E**stimable - Clear scope
 - **S**mall - Fits in token budget
 - **T**estable - Clear pass/fail criteria
+
+### Layer-Based Execution
+Stories are grouped and executed by architectural layer:
+1. **Data Layer** - Models, migrations, entities
+2. **Service Layer** - Business logic, services
+3. **API Layer** - Routes, controllers, endpoints
+4. **UI Layer** - Components, screens, flows
 
 ---
 
@@ -245,6 +325,11 @@ Your prompt here...
 - Ensure `jq` is installed: `brew install jq`
 - Ensure `claude` CLI is available
 - Check stories JSON is valid: `jq . stories.json`
+
+### Blueprint validation fails
+- Ensure all 4 layer sections exist (Data, Service, API, UI)
+- Ensure "Constraints for Story Generation" section exists
+- Run `/design-solution` to create blueprint first
 
 ---
 
