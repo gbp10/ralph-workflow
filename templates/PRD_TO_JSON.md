@@ -1,7 +1,46 @@
-# Skill: PRD to JSON Converter
+# Skill: Solution to Stories Converter
 
 ## Purpose
-Convert a PRD (Product Requirements Document) into a JSON array of user stories that follow **industry best practices** and are scoped to fit within Claude's **context window** during execution.
+Convert an Implementation Blueprint into a JSON array of user stories that follow **industry best practices** and are scoped to fit within Claude's **context window** during execution.
+
+---
+
+## Blueprint Integration
+
+> **IMPORTANT:** This skill now requires an Implementation Blueprint as input.
+
+### Pre-requisites
+Before running `/solution-to-stories`, ensure:
+1. PRD exists at `.kiro/specs/[feature]/requirements.md`
+2. `/design-solution` has been run
+3. Blueprint exists at `.kiro/specs/[feature]/implementation-blueprint.md`
+
+### Validation Checklist
+```
+□ Blueprint file exists
+□ Blueprint has all 4 layer sections (Data, Service, API, UI)
+□ Blueprint has "Constraints for Story Generation"
+□ Research synthesis complete
+```
+
+### Constraint Flow
+```
+Blueprint Constraints → Story Acceptance Criteria
+Blueprint Constraints → Story Prompt
+Blueprint Suggested Files → Story file lists
+Blueprint Sequencing → Story depends_on
+Blueprint Layer → Story layer field
+```
+
+### New JSON Fields
+
+The enhanced schema adds:
+- `blueprint_path` - Reference to blueprint
+- `blueprint_metadata` - Constraints and assumptions
+- `story_groups` - Stories by architectural layer
+- `execution_order` - Recommended sequence
+- Per-story `layer` field
+- Per-story `blueprint_reference`
 
 ---
 

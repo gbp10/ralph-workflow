@@ -47,7 +47,7 @@ Read: "src/services/[ServiceName].ts"
 ## Phase 2: Write PRD
 
 After completing research, create the PRD following the template at:
-`.claude/ralph-workflow/templates/CREATE_PRD.md`
+`${CLAUDE_PLUGIN_ROOT}/templates/CREATE_PRD.md`
 
 ### Key Sections
 1. **Problem Statement** - What problem are we solving?
@@ -81,4 +81,4 @@ After completing research, create the PRD following the template at:
 ```
 
 ## Full Template
-See `.claude/ralph-workflow/templates/CREATE_PRD.md` for the complete PRD template with all sections.
+See `${CLAUDE_PLUGIN_ROOT}/templates/CREATE_PRD.md` for the complete PRD template with all sections.

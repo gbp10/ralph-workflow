@@ -10,7 +10,7 @@ Start an iterative development loop where Claude works on a task autonomously un
 ## Usage
 
 ```bash
-.claude/ralph-workflow/scripts/ralph-loop.sh $ARGUMENTS
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh $ARGUMENTS
 ```
 
 ## Arguments

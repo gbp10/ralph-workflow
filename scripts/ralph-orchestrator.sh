@@ -17,20 +17,22 @@
 set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-WORKFLOW_DIR="$(dirname "$SCRIPT_DIR")"
-PROJECT_DIR="$(dirname "$(dirname "$WORKFLOW_DIR")")"
-CURRENT_TASK="$WORKFLOW_DIR/prompts/CURRENT_TASK.md"
-LOG_FILE="$WORKFLOW_DIR/ralph-orchestrator.log"
+PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
+PROJECT_DIR="$(pwd)"
+RALPH_DIR="$PROJECT_DIR/.claude/ralph-workflow"
+CURRENT_TASK="$RALPH_DIR/prompts/CURRENT_TASK.md"
+LOG_FILE="$RALPH_DIR/ralph-orchestrator.log"
 MAX_ITERATIONS_PER_STORY=${MAX_ITERATIONS:-50}
 
 # Parse arguments - default to looking for any JSON in stories/
 STORIES_FILE="${1:-}"
 if [[ -z "$STORIES_FILE" ]]; then
-    STORIES_FILE=$(ls "$WORKFLOW_DIR/stories/"*.json 2>/dev/null | head -1)
+    STORIES_FILE=$(ls "$RALPH_DIR/stories/"*.json 2>/dev/null | head -1)
 fi
 
 if [[ -z "$STORIES_FILE" ]]; then
     echo "❌ No stories file found. Create one at .claude/ralph-workflow/stories/[feature].json"
+    echo "   Or run /solution-to-stories first to generate stories from a blueprint."
     exit 1
 fi
 
@@ -113,6 +115,9 @@ get_next_story() {
 generate_task_file() {
     local story_id=$1
     log "${YELLOW}Generating CURRENT_TASK.md for $story_id...${NC}"
+
+    # Ensure prompts directory exists
+    mkdir -p "$(dirname "$CURRENT_TASK")"
 
     local story_data=$(jq -r ".user_stories[] | select(.id == \"$story_id\")" "$STORIES_FILE")
     local title=$(echo "$story_data" | jq -r '.title')
@@ -294,6 +299,11 @@ ARGUMENTS:
 
 ENVIRONMENT:
   MAX_ITERATIONS  Max iterations per story (default: 50)
+
+OUTPUT LOCATIONS:
+  Stories:     .claude/ralph-workflow/stories/
+  Task file:   .claude/ralph-workflow/prompts/CURRENT_TASK.md
+  Log file:    .claude/ralph-workflow/ralph-orchestrator.log
 
 EXAMPLES:
   $0
