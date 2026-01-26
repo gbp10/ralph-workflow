@@ -1,0 +1,15 @@
+{
+  "name": "ralph-workflow-local",
+  "displayName": "Ralph Workflow (Local)",
+  "description": "AI-driven development workflow with self-referential loops and PRD-to-execution pipelines",
+  "version": "2.0.0",
+  "plugins": [
+    {
+      "name": "ralph-workflow",
+      "displayName": "Ralph Workflow",
+      "description": "Complete AI-driven development workflow featuring self-referential iteration loops, research-first solution design, and PRD-to-execution pipelines",
+      "version": "2.0.0",
+      "path": ".."
+    }
+  ]
+}
