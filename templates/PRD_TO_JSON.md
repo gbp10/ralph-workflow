@@ -11,9 +11,9 @@ Convert an Implementation Blueprint into a JSON array of user stories that follo
 
 ### Pre-requisites
 Before running `/solution-to-stories`, ensure:
-1. PRD exists at `.kiro/specs/[feature]/requirements.md`
+1. PRD exists at `.claude/ralph/specs/[feature]/requirements.md`
 2. `/design-solution` has been run
-3. Blueprint exists at `.kiro/specs/[feature]/implementation-blueprint.md`
+3. Blueprint exists at `.claude/ralph/specs/[feature]/implementation-blueprint.md`
 
 ### Validation Checklist
 ```
@@ -248,7 +248,7 @@ execution_tokens =
 ```json
 {
   "prd_name": "Feature Name",
-  "prd_path": ".kiro/specs/feature-name/requirements.md",
+  "prd_path": ".claude/ralph/specs/feature-name/requirements.md",
   "created_at": "2026-01-13T10:00:00Z",
   "model": "claude-opus-4-5",
   "context_window": 100000,
@@ -369,8 +369,8 @@ execution_tokens =
 
   "knowledge_files": {
     "pre_load": [
-      ".claude/ralph-workflow/knowledge/DATABASE_SCHEMA.md",
-      ".claude/ralph-workflow/knowledge/INFRASTRUCTURE.md"
+      ".claude/ralph/knowledge/DATABASE_SCHEMA.md",
+      ".claude/ralph/knowledge/INFRASTRUCTURE.md"
     ]
   }
 }
@@ -466,7 +466,7 @@ Include scope, files, Gherkin criteria, and knowledge update instructions.
 
 ## Output Location
 ```
-.claude/ralph-workflow/stories/[feature-name].json
+.claude/ralph/specs/[feature-name]/stories.json
 ```
 
 ---

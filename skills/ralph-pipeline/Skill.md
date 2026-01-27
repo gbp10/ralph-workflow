@@ -61,21 +61,21 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-full-pipeline.sh --feature-name "[feature-na
 ### Phase 1: PRD Creation
 - Invokes `/create-prd` logic
 - Researches codebase before writing
-- Outputs: `.kiro/specs/[feature]/requirements.md`
+- Outputs: `.claude/ralph/specs/[feature]/requirements.md`
 - Completion signal: `<promise>PRD COMPLETE</promise>`
 
 ### Phase 2: Solution Design
 - Invokes `/design-solution` logic
 - Runs 9 mandatory research areas
 - Creates synthesis and blueprint
-- Outputs: `.kiro/specs/[feature]/implementation-blueprint.md`
+- Outputs: `.claude/ralph/specs/[feature]/implementation-blueprint.md`
 - Completion signal: `<promise>BLUEPRINT COMPLETE</promise>`
 
 ### Phase 3: Story Conversion
 - Invokes `/solution-to-stories` logic
 - Validates blueprint
 - Creates INVEST-validated stories
-- Outputs: `.claude/ralph-workflow/stories/[feature].json`
+- Outputs: `.claude/ralph/specs/[feature]/stories.json`
 - Completion signal: `<promise>STORIES COMPLETE</promise>`
 
 ### Phase 4: Execution
@@ -109,7 +109,7 @@ If you already have some artifacts, skip phases:
 After completion:
 
 ```
-.kiro/specs/[feature]/
+.claude/ralph/specs/[feature]/
 ├── requirements.md              # PRD
 ├── research/                    # 9 research documents
 │   ├── codebase-patterns.md
@@ -126,7 +126,7 @@ After completion:
 ├── research-synthesis.md        # Synthesis
 └── implementation-blueprint.md  # Blueprint
 
-.claude/ralph-workflow/
+.claude/ralph/
 ├── stories/[feature].json       # User stories
 └── ralph-pipeline.log           # Execution log
 ```
@@ -166,11 +166,11 @@ This will:
 
 ```bash
 # Watch the log file
-tail -f .claude/ralph-workflow/ralph-pipeline.log
+tail -f .claude/ralph/ralph-pipeline.log
 
 # Check current phase
-grep "PHASE" .claude/ralph-workflow/ralph-pipeline.log | tail -1
+grep "PHASE" .claude/ralph/ralph-pipeline.log | tail -1
 
 # Check story progress
-grep "COMPLETE" .claude/ralph-workflow/ralph-pipeline.log
+grep "COMPLETE" .claude/ralph/ralph-pipeline.log
 ```

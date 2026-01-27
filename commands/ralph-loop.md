@@ -14,7 +14,7 @@ Starting Ralph loop with your task...
 
 ## How It Works
 
-1. Creates `.claude/ralph-loop.local.md` state file with your prompt
+1. Creates `.claude/ralph/state/loop.local.md` state file with your prompt
 2. The Stop hook intercepts exit attempts
 3. Your same prompt is fed back, but you see modified files from previous iteration
 4. Loop continues until completion promise detected or max iterations reached

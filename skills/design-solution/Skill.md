@@ -32,8 +32,8 @@ Without proper research, your blueprint will be based on assumptions, contaminat
 ## Phase 1: Mandatory Research
 
 ### Before You Start
-1. Verify PRD exists at `.kiro/specs/[feature-name]/requirements.md`
-2. Create research directory: `.kiro/specs/[feature-name]/research/`
+1. Verify PRD exists at `.claude/ralph/specs/[feature-name]/requirements.md`
+2. Create research directory: `.claude/ralph/specs/[feature-name]/research/`
 3. Read the PRD thoroughly to understand what needs to be built
 
 ### Research Areas (ALL REQUIRED)
@@ -147,7 +147,7 @@ Gather all constraints from research into categories:
 
 ### Synthesis Document
 
-Save to: `.kiro/specs/[feature-name]/research-synthesis.md`
+Save to: `.claude/ralph/specs/[feature-name]/research-synthesis.md`
 
 ```markdown
 # Research Synthesis: [Feature Name]
@@ -197,7 +197,7 @@ Design the solution architecture layer by layer, producing actionable guidance f
 
 Use template from: `${CLAUDE_PLUGIN_ROOT}/templates/IMPLEMENTATION_BLUEPRINT.md`
 
-Save to: `.kiro/specs/[feature-name]/implementation-blueprint.md`
+Save to: `.claude/ralph/specs/[feature-name]/implementation-blueprint.md`
 
 ### Required Sections
 
@@ -251,7 +251,7 @@ This section is CRITICAL. List every rule that `/solution-to-stories` must enfor
 After completing all phases, you will have created:
 
 ```
-.kiro/specs/[feature-name]/
+.claude/ralph/specs/[feature-name]/
 ├── requirements.md              (input - already exists from /create-prd)
 ├── research/
 │   ├── codebase-patterns.md
@@ -291,5 +291,5 @@ This will consume the blueprint and generate INVEST-validated user stories with:
 Then execute with:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh .claude/ralph-workflow/stories/[feature-name].json
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh .claude/ralph/specs/[feature-name]/stories.json
 ```

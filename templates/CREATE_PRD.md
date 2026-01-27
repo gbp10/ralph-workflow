@@ -464,7 +464,7 @@ Without proper research, your PRD will be based on assumptions and will contamin
 
 ### Phase 4: Review
 1. **Recommend peer review** with engineering/design
-2. **Save to** `.kiro/specs/[feature-name]/requirements.md`
+2. **Save to** `.claude/ralph/specs/[feature-name]/requirements.md`
 3. **Create companion files** if needed (design.md, tasks.md)
 
 ---
@@ -472,7 +472,7 @@ Without proper research, your PRD will be based on assumptions and will contamin
 ## Output Location
 
 ```
-.kiro/specs/[feature-name]/
+.claude/ralph/specs/[feature-name]/
 ├── requirements.md    # The PRD
 ├── design.md          # Detailed technical design (optional)
 └── tasks.md           # Implementation checklist (optional)

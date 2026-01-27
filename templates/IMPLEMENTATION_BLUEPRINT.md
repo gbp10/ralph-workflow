@@ -10,8 +10,8 @@ This template defines the structure for Implementation Blueprints produced by th
 # Implementation Blueprint: [Feature Name]
 
 ## Metadata
-- **PRD:** `.kiro/specs/[feature]/requirements.md`
-- **Research:** `.kiro/specs/[feature]/research/`
+- **PRD:** `.claude/ralph/specs/[feature]/requirements.md`
+- **Research:** `.claude/ralph/specs/[feature]/research/`
 - **Created:** [ISO-8601 timestamp]
 - **Status:** Ready for story generation
 

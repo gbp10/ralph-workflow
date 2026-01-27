@@ -34,7 +34,7 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh $ARGUMENTS
 
 ## How It Works
 
-1. Creates `.claude/ralph-loop.local.md` state file with your prompt
+1. Creates `.claude/ralph/state/loop.local.md` state file with your prompt
 2. The Stop hook intercepts exit attempts
 3. Same prompt is fed back - progress visible through modified files
 4. Loop continues until:
@@ -59,10 +59,10 @@ When the task is genuinely complete, output:
 
 ```bash
 # View current iteration
-grep '^iteration:' .claude/ralph-loop.local.md
+grep '^iteration:' .claude/ralph/state/loop.local.md
 
 # View full state
-head -10 .claude/ralph-loop.local.md
+head -10 .claude/ralph/state/loop.local.md
 ```
 
 ## Cancel

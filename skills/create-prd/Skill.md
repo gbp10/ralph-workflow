@@ -77,7 +77,7 @@ After completing research, create the PRD following the template at:
 
 ## Output Location
 ```
-.kiro/specs/[feature-name]/requirements.md
+.claude/ralph/specs/[feature-name]/requirements.md
 ```
 
 ## Full Template

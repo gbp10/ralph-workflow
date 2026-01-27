@@ -19,19 +19,24 @@ set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
 PROJECT_DIR="$(pwd)"
-RALPH_DIR="$PROJECT_DIR/.claude/ralph-workflow"
-CURRENT_TASK="$RALPH_DIR/prompts/CURRENT_TASK.md"
-LOG_FILE="$RALPH_DIR/ralph-orchestrator.log"
+RALPH_DIR="$PROJECT_DIR/.claude/ralph"
+CURRENT_TASK="$RALPH_DIR/state/current-task.md"
+LOG_FILE="$RALPH_DIR/state/orchestrator.log"
 MAX_ITERATIONS_PER_STORY=${MAX_ITERATIONS:-50}
 
 # Parse arguments - default to looking for any JSON in stories/
 STORIES_FILE="${1:-}"
+
 if [[ -z "$STORIES_FILE" ]]; then
-    STORIES_FILE=$(ls "$RALPH_DIR/stories/"*.json 2>/dev/null | head -1)
+    # No argument - find first stories.json in specs/
+    STORIES_FILE=$(ls "$RALPH_DIR/specs/"*/stories.json 2>/dev/null | head -1)
+elif [[ ! "$STORIES_FILE" == *"/"* ]] && [[ ! "$STORIES_FILE" == *.json ]]; then
+    # Just a feature name (no slashes, no .json) - look in specs directory
+    STORIES_FILE="$RALPH_DIR/specs/${STORIES_FILE}/stories.json"
 fi
 
 if [[ -z "$STORIES_FILE" ]]; then
-    echo "❌ No stories file found. Create one at .claude/ralph-workflow/stories/[feature].json"
+    echo "❌ No stories file found. Create one at .claude/ralph/specs/[feature]/stories.json"
     echo "   Or run /solution-to-stories first to generate stories from a blueprint."
     exit 1
 fi
@@ -67,25 +72,27 @@ banner() {
 }
 
 get_total_stories() {
-    jq '.user_stories | length' "$STORIES_FILE"
+    jq '.stories | length' "$STORIES_FILE"
 }
 
 get_completed_count() {
-    jq '[.user_stories[] | select(.status == "completed")] | length' "$STORIES_FILE"
+    # Handle stories that may not have status field yet (treat missing as "pending")
+    jq '[.stories[] | select(.status == "completed")] | length' "$STORIES_FILE"
 }
 
 get_next_incomplete_story() {
-    jq -r '.user_stories[] | select(.status != "completed") | .id' "$STORIES_FILE" | head -1
+    # Stories without status field are considered incomplete
+    jq -r '.stories[] | select(.status != "completed") | .id' "$STORIES_FILE" | head -1
 }
 
 get_story_by_id() {
     local story_id=$1
-    jq -r ".user_stories[] | select(.id == \"$story_id\")" "$STORIES_FILE"
+    jq -r ".stories[] | select(.id == \"$story_id\")" "$STORIES_FILE"
 }
 
 get_story_position() {
     local story_id=$1
-    jq -r ".user_stories | to_entries | map(select(.value.id == \"$story_id\")) | .[0].key + 1" "$STORIES_FILE"
+    jq -r ".stories | to_entries | map(select(.value.id == \"$story_id\")) | .[0].key + 1" "$STORIES_FILE"
 }
 
 mark_story_completed() {
@@ -93,7 +100,8 @@ mark_story_completed() {
     log "${YELLOW}Marking $story_id as completed...${NC}"
 
     local tmp_file=$(mktemp)
-    jq "(.user_stories[] | select(.id == \"$story_id\") | .status) = \"completed\"" "$STORIES_FILE" > "$tmp_file"
+    # Add or update the status field
+    jq "(.stories |= map(if .id == \"$story_id\" then . + {\"status\": \"completed\"} else . end))" "$STORIES_FILE" > "$tmp_file"
     mv "$tmp_file" "$STORIES_FILE"
 
     log "${GREEN}✓ $story_id marked as completed${NC}"
@@ -102,7 +110,7 @@ mark_story_completed() {
 get_next_story() {
     local current=$1
     jq -r "
-        .user_stories as \$stories |
+        .stories as \$stories |
         (\$stories | to_entries | map(select(.value.id == \"$current\")) | .[0].key) as \$idx |
         if \$idx != null and (\$idx + 1) < (\$stories | length) then
             \$stories[\$idx + 1].id
@@ -119,39 +127,126 @@ generate_task_file() {
     # Ensure prompts directory exists
     mkdir -p "$(dirname "$CURRENT_TASK")"
 
-    local story_data=$(jq -r ".user_stories[] | select(.id == \"$story_id\")" "$STORIES_FILE")
+    local story_data=$(jq -r ".stories[] | select(.id == \"$story_id\")" "$STORIES_FILE")
     local title=$(echo "$story_data" | jq -r '.title')
-    local role=$(echo "$story_data" | jq -r '.user_story.role')
-    local goal=$(echo "$story_data" | jq -r '.user_story.goal')
-    local benefit=$(echo "$story_data" | jq -r '.user_story.benefit')
-    local prompt=$(echo "$story_data" | jq -r '.prompt')
-    local completion_promise=$(echo "$story_data" | jq -r '.completion_promise')
+    local user_story=$(echo "$story_data" | jq -r '.userStory')
+    local layer=$(echo "$story_data" | jq -r '.layer')
+    local priority=$(echo "$story_data" | jq -r '.priority')
     local story_num=$(get_story_position "$story_id")
     local total=$(get_total_stories)
+
+    # Extract acceptance criteria as formatted text
+    local acceptance_criteria=$(echo "$story_data" | jq -r '
+        .acceptanceCriteria | map(
+            "### " + .scenario + "\n" +
+            "**Given** " + .given + "\n" +
+            "**When** " + .when + "\n" +
+            "**Then** " + .then + "\n"
+        ) | join("\n")
+    ')
+
+    # Extract constraints
+    local constraints=$(echo "$story_data" | jq -r '.constraints | join(", ")')
+
+    # Extract files to create/modify
+    local files=$(echo "$story_data" | jq -r '
+        .files | map("- [" + .action + "] `" + .path + "`") | join("\n")
+    ')
+
+    # Extract dependencies
+    local dependencies=$(echo "$story_data" | jq -r '
+        if .dependencies | length > 0 then
+            .dependencies | join(", ")
+        else
+            "None"
+        end
+    ')
+
+    # Get global constraints from the file if available
+    local global_constraints=$(jq -r '
+        if .globalConstraints then
+            .globalConstraints | to_entries | map(
+                "**" + .key + ":**\n" +
+                (.value | map("- " + .id + ": " + .rule) | join("\n"))
+            ) | join("\n\n")
+        else
+            ""
+        end
+    ' "$STORIES_FILE")
 
     cat > "$CURRENT_TASK" << EOF
 # Current Ralph Task: $story_id - $title
 
-## Story $story_num of $total
+## Story $story_num of $total | Layer: $layer | Priority: $priority
 
 ---
 
 ## User Story
-**As a** $role,
-**I want** $goal,
-**So that** $benefit.
+
+$user_story
 
 ---
 
-$prompt
+## Acceptance Criteria
+
+$acceptance_criteria
+
+---
+
+## Files to Create/Modify
+
+$files
+
+---
+
+## Constraints
+
+Applicable constraints: $constraints
+
+<details>
+<summary>Global Constraints Reference</summary>
+
+$global_constraints
+
+</details>
+
+---
+
+## Dependencies
+
+$dependencies
+
+---
+
+## Instructions
+
+**CRITICAL: This is an AUTONOMOUS execution. DO NOT ask questions - make reasonable decisions and proceed.**
+
+1. Read and understand the user story and acceptance criteria
+2. Check dependencies are satisfied before starting
+3. Create/modify the files listed above
+4. Ensure ALL acceptance criteria pass
+5. Follow the applicable constraints strictly
+6. When facing design choices, pick the most pragmatic option and document your decision
+7. If something is ambiguous, make a reasonable assumption and note it in your summary
+
+**DO NOT:**
+- Ask clarifying questions (this is non-interactive)
+- Wait for user input
+- Present options and ask which to choose
+
+**DO:**
+- Make autonomous decisions
+- Document assumptions in your completion summary
+- Proceed directly to implementation
 
 ---
 
 ## Completion Promise
 
-When ALL success criteria are met and all tests pass, output:
+When ALL acceptance criteria are met and the implementation is complete, output:
 
-<promise>$completion_promise</promise>
+<promise>$story_id COMPLETE</promise>
 
 ---
 EOF
@@ -163,17 +258,22 @@ commit_progress() {
     local current_story=$1
     local next_story=$2
 
-    log "${YELLOW}Committing progress...${NC}"
-    git add -A
-    git commit -m "Complete $current_story, advance to $next_story
+    # Only commit if we're in a git repo
+    if git rev-parse --git-dir > /dev/null 2>&1; then
+        log "${YELLOW}Committing progress...${NC}"
+        git add -A
+        git commit -m "Complete $current_story, advance to $next_story
 
 Co-Authored-By: Claude <noreply@anthropic.com>" 2>/dev/null || log "${YELLOW}Nothing to commit${NC}"
+    else
+        log "${YELLOW}Skipping git commit (not a git repository)${NC}"
+    fi
 }
 
 clear_session_context() {
     local story_id=$1
     log "${YELLOW}Clearing session context...${NC}"
-    rm -f .claude/ralph-loop.local.md 2>/dev/null
+    rm -f .claude/ralph/state/loop.local.md 2>/dev/null
     rm -f /tmp/ralph-*.tmp 2>/dev/null
     log "${GREEN}✓ Context cleared${NC}"
 }
@@ -295,19 +395,19 @@ USAGE:
 
 ARGUMENTS:
   STORIES_FILE    Path to JSON file containing user stories
-                  Default: First .json file in .claude/ralph-workflow/stories/
+                  Default: First stories.json in .claude/ralph/specs/
 
 ENVIRONMENT:
   MAX_ITERATIONS  Max iterations per story (default: 50)
 
 OUTPUT LOCATIONS:
-  Stories:     .claude/ralph-workflow/stories/
-  Task file:   .claude/ralph-workflow/prompts/CURRENT_TASK.md
-  Log file:    .claude/ralph-workflow/ralph-orchestrator.log
+  Stories:     .claude/ralph/specs/[feature]/stories.json
+  Task file:   .claude/ralph/state/current-task.md
+  Log file:    .claude/ralph/state/orchestrator.log
 
 EXAMPLES:
   $0
-  $0 .claude/ralph-workflow/stories/my-feature.json
+  $0 .claude/ralph/specs/my-feature/stories.json
   MAX_ITERATIONS=30 $0
 EOF
 }

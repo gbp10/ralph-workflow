@@ -78,7 +78,7 @@ if [[ -z "$PROMPT" ]]; then
 fi
 
 # Create state file
-mkdir -p .claude
+mkdir -p .claude/ralph/state
 
 if [[ -n "$COMPLETION_PROMISE" ]] && [[ "$COMPLETION_PROMISE" != "null" ]]; then
   COMPLETION_PROMISE_YAML="\"$COMPLETION_PROMISE\""
@@ -86,7 +86,7 @@ else
   COMPLETION_PROMISE_YAML="null"
 fi
 
-cat > .claude/ralph-loop.local.md <<EOF
+cat > .claude/ralph/state/loop.local.md <<EOF
 ---
 active: true
 iteration: 1

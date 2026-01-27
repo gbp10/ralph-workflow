@@ -55,9 +55,9 @@ ralph-workflow/
 
 | Phase | Skill | Input | Output |
 |-------|-------|-------|--------|
-| 1 | `/create-prd` | Feature idea | `.kiro/specs/[feature]/requirements.md` |
-| 2 | `/design-solution` | PRD | `.kiro/specs/[feature]/implementation-blueprint.md` |
-| 3 | `/solution-to-stories` | Blueprint | `.claude/ralph-workflow/stories/[feature].json` |
+| 1 | `/create-prd` | Feature idea | `.claude/ralph/specs/[feature]/requirements.md` |
+| 2 | `/design-solution` | PRD | `.claude/ralph/specs/[feature]/implementation-blueprint.md` |
+| 3 | `/solution-to-stories` | Blueprint | `.claude/ralph/specs/[feature]/stories.json` |
 | 4 | `ralph-orchestrator.sh` | Stories JSON | Implemented feature |
 
 ---
@@ -158,7 +158,7 @@ Research-first approach:
 3. Review existing documentation
 4. Write comprehensive PRD with SMART goals
 
-Output: `.kiro/specs/[feature]/requirements.md`
+Output: `.claude/ralph/specs/[feature]/requirements.md`
 
 ### Phase 2: Design Solution (`/design-solution`)
 
@@ -183,7 +183,7 @@ Output: `.kiro/specs/[feature]/requirements.md`
 - Constraints + Suggested Files per layer
 - Story sequencing recommendations
 
-Output: `.kiro/specs/[feature]/implementation-blueprint.md`
+Output: `.claude/ralph/specs/[feature]/implementation-blueprint.md`
 
 ### Phase 3: Convert to Stories (`/solution-to-stories`)
 
@@ -196,7 +196,7 @@ Blueprint-aware conversion:
 6. Group stories by architectural layer
 7. Set execution order based on blueprint
 
-Output: `.claude/ralph-workflow/stories/[feature].json`
+Output: `.claude/ralph/specs/[feature]/stories.json`
 
 ### Phase 4: Execute with Ralph
 
@@ -225,30 +225,31 @@ When the workflow runs, it creates files in your project:
 
 ```
 your-project/
-├── .claude/
-│   └── ralph-workflow/
-│       ├── prompts/
-│       │   └── CURRENT_TASK.md      # Active task (generated)
-│       └── stories/
-│           └── [feature].json       # User story files
-└── .kiro/
-    └── specs/
-        └── [feature]/
-            ├── requirements.md       # PRD output
-            ├── research/             # Research documents
-            │   ├── codebase-patterns.md
-            │   ├── architecture.md
-            │   ├── database.md
-            │   ├── api-surface.md
-            │   ├── dependencies.md
-            │   ├── security.md
-            │   ├── performance.md
-            │   ├── prior-art.md
-            │   └── ui-ux/
-            │       ├── analysis.md
-            │       └── screenshots/
-            ├── research-synthesis.md # Synthesis
-            └── implementation-blueprint.md # Blueprint
+└── .claude/
+    └── ralph/
+        ├── specs/                        # Pipeline outputs (per-feature)
+        │   └── [feature]/
+        │       ├── requirements.md       # PRD output (Phase 1)
+        │       ├── research/             # Research documents (Phase 2)
+        │       │   ├── codebase-patterns.md
+        │       │   ├── architecture.md
+        │       │   ├── database.md
+        │       │   ├── api-surface.md
+        │       │   ├── dependencies.md
+        │       │   ├── security.md
+        │       │   ├── performance.md
+        │       │   ├── prior-art.md
+        │       │   └── ui-ux/
+        │       │       ├── analysis.md
+        │       │       └── screenshots/
+        │       ├── research-synthesis.md # Synthesis (Phase 2)
+        │       ├── implementation-blueprint.md # Blueprint (Phase 2)
+        │       └── stories.json          # User stories (Phase 3)
+        │
+        └── state/                        # Runtime state (ephemeral)
+            ├── loop.local.md             # Active loop state
+            ├── current-task.md           # Current story task
+            └── *.log                     # Execution logs
 ```
 
 ---
@@ -302,7 +303,7 @@ MAX_ITERATIONS=50  # Max iterations per story (default: 50)
 
 ### State File
 
-Ralph stores state in `.claude/ralph-loop.local.md`:
+Ralph stores state in `.claude/ralph/state/loop.local.md`:
 ```yaml
 ---
 active: true
