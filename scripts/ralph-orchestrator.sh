@@ -19,10 +19,32 @@ set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
 PROJECT_DIR="$(pwd)"
-RALPH_DIR="$PROJECT_DIR/.claude/ralph"
+RALPH_DIR="$PROJECT_DIR/ralph"
 CURRENT_TASK="$RALPH_DIR/state/current-task.md"
 LOG_FILE="$RALPH_DIR/state/orchestrator.log"
 MAX_ITERATIONS_PER_STORY=${MAX_ITERATIONS:-50}
+BUDGET_LIMIT=${BUDGET_LIMIT:-10.00}
+
+# Source checkpoint library
+source "$SCRIPT_DIR/lib/checkpoint.sh" 2>/dev/null || {
+    echo "Warning: checkpoint.sh not found, running without checkpoint support"
+    CHECKPOINT_ENABLED=false
+}
+CHECKPOINT_ENABLED=${CHECKPOINT_ENABLED:-true}
+
+# Source structured logger
+source "$SCRIPT_DIR/lib/logger.sh" 2>/dev/null || {
+    echo "Warning: logger.sh not found, running without structured logging"
+    STRUCTURED_LOGGING=false
+}
+STRUCTURED_LOGGING=${STRUCTURED_LOGGING:-true}
+
+# Source cost tracking
+source "$SCRIPT_DIR/lib/cost.sh" 2>/dev/null || {
+    echo "Warning: cost.sh not found, running without cost tracking"
+    COST_TRACKING=false
+}
+COST_TRACKING=${COST_TRACKING:-true}
 
 # Parse arguments - default to looking for any JSON in stories/
 STORIES_FILE="${1:-}"
@@ -36,7 +58,7 @@ elif [[ ! "$STORIES_FILE" == *"/"* ]] && [[ ! "$STORIES_FILE" == *.json ]]; then
 fi
 
 if [[ -z "$STORIES_FILE" ]]; then
-    echo "❌ No stories file found. Create one at .claude/ralph/specs/[feature]/stories.json"
+    echo "❌ No stories file found. Create one at ralph/specs/[feature]/stories.json"
     echo "   Or run /solution-to-stories first to generate stories from a blueprint."
     exit 1
 fi
@@ -273,7 +295,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>" 2>/dev/null || log "${YELLOW}Not
 clear_session_context() {
     local story_id=$1
     log "${YELLOW}Clearing session context...${NC}"
-    rm -f .claude/ralph/state/loop.local.md 2>/dev/null
+    rm -f ralph/state/loop.local.md 2>/dev/null
     rm -f /tmp/ralph-*.tmp 2>/dev/null
     log "${GREEN}✓ Context cleared${NC}"
 }
@@ -296,11 +318,38 @@ run_story_loop() {
     local iteration=0
     local output_file=$(mktemp)
 
+    # Check if story already completed (checkpoint resume)
+    if [[ "$CHECKPOINT_ENABLED" == "true" ]]; then
+        if [[ "$(should_skip_story "$story_id")" == "true" ]]; then
+            log "${YELLOW}⏭ Skipping $story_id (already completed in checkpoint)${NC}"
+            return 0
+        fi
+
+        # Check budget before starting
+        if ! check_budget; then
+            log "${RED}⚠️ Budget exceeded - stopping execution${NC}"
+            return 2
+        fi
+
+        # Mark story as in_progress
+        start_story "$story_id"
+    fi
+
     log ""
     log "${GREEN}═══════════════════════════════════════════════════════════${NC}"
     log "${GREEN}  Starting Ralph Loop for: $story_id${NC}"
     log "${GREEN}═══════════════════════════════════════════════════════════${NC}"
     log ""
+
+    # Structured logging: story start
+    if [[ "$STRUCTURED_LOGGING" == "true" ]]; then
+        local story_data=$(get_story_by_id "$story_id")
+        local layer=$(echo "$story_data" | jq -r '.layer // "unknown"')
+        local priority=$(echo "$story_data" | jq -r '.priority // "unknown"')
+        log_story_start "$story_id" "$layer" "$priority"
+    fi
+
+    local start_time=$(date +%s%3N 2>/dev/null || date +%s)
 
     clear_session_context "$story_id"
     generate_task_file "$story_id"
@@ -308,6 +357,9 @@ run_story_loop() {
     while [ $iteration -lt $MAX_ITERATIONS_PER_STORY ]; do
         iteration=$((iteration + 1))
         log "${BLUE}─── Iteration $iteration of $MAX_ITERATIONS_PER_STORY ───${NC}"
+
+        # Structured logging: iteration start
+        [[ "$STRUCTURED_LOGGING" == "true" ]] && log_iteration_start "$iteration"
 
         run_ralph_iteration "$output_file"
 
@@ -318,6 +370,21 @@ run_story_loop() {
             log "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
 
             mark_story_completed "$story_id"
+
+            # Calculate duration
+            local end_time=$(date +%s%3N 2>/dev/null || date +%s)
+            local duration_ms=$((end_time - start_time))
+
+            # Save to checkpoint with iteration count
+            if [[ "$CHECKPOINT_ENABLED" == "true" ]]; then
+                complete_story "$story_id" "$iteration" 0
+            fi
+
+            # Structured logging: story complete
+            if [[ "$STRUCTURED_LOGGING" == "true" ]]; then
+                log_story_complete "$story_id" "$iteration" "$duration_ms" 0
+            fi
+
             rm -f "$output_file"
             return 0
         fi
@@ -327,6 +394,17 @@ run_story_loop() {
     done
 
     log "${RED}⚠️ Max iterations reached without completion${NC}"
+
+    # Mark as failed in checkpoint
+    if [[ "$CHECKPOINT_ENABLED" == "true" ]]; then
+        fail_story "$story_id" "$iteration" 0
+    fi
+
+    # Structured logging: story failed
+    if [[ "$STRUCTURED_LOGGING" == "true" ]]; then
+        log_story_failed "$story_id" "$iteration" "max_iterations_exceeded"
+    fi
+
     rm -f "$output_file"
     return 1
 }
@@ -346,6 +424,12 @@ run_all_stories() {
             log "${GREEN}╔═══════════════════════════════════════════════════════════╗${NC}"
             log "${GREEN}║     🎉 ALL $total STORIES COMPLETE!                       ${NC}"
             log "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
+
+            # Show cost summary
+            if [[ "$COST_TRACKING" == "true" ]]; then
+                get_cost_breakdown
+            fi
+
             return 0
         fi
 
@@ -395,20 +479,40 @@ USAGE:
 
 ARGUMENTS:
   STORIES_FILE    Path to JSON file containing user stories
-                  Default: First stories.json in .claude/ralph/specs/
+                  Default: First stories.json in ralph/specs/
 
 ENVIRONMENT:
-  MAX_ITERATIONS  Max iterations per story (default: 50)
+  MAX_ITERATIONS      Max iterations per story (default: 50)
+  BUDGET_LIMIT        Max cost in USD before stopping (default: 10.00)
+  CHECKPOINT_ENABLED  Enable checkpoint/resume (default: true)
+  STRUCTURED_LOGGING  Enable JSON logging (default: true)
+  COST_TRACKING       Enable cost tracking (default: true)
+  LOG_LEVEL           Log level: DEBUG, INFO, WARN, ERROR (default: INFO)
 
 OUTPUT LOCATIONS:
-  Stories:     .claude/ralph/specs/[feature]/stories.json
-  Task file:   .claude/ralph/state/current-task.md
-  Log file:    .claude/ralph/state/orchestrator.log
+  Stories:     ralph/specs/[feature]/stories.json
+  Task file:   ralph/state/current-task.md
+  Log file:    ralph/state/orchestrator.log
+  Checkpoint:  ralph/state/checkpoint-[feature].json
+  Cost data:   ralph/state/cost-[feature].json
+  JSON logs:   ralph/logs/[feature]-YYYYMMDD.jsonl
+
+CHECKPOINT/RESUME:
+  The orchestrator automatically saves progress after each story.
+  If interrupted, simply re-run with the same stories file to resume.
+
+  Checkpoint tracks:
+    - Story completion status
+    - Iteration counts
+    - Cost accumulation
+    - Budget enforcement
 
 EXAMPLES:
   $0
-  $0 .claude/ralph/specs/my-feature/stories.json
+  $0 ralph/specs/my-feature/stories.json
   MAX_ITERATIONS=30 $0
+  BUDGET_LIMIT=5.00 $0
+  CHECKPOINT_ENABLED=false $0  # Disable checkpointing
 EOF
 }
 
@@ -420,6 +524,29 @@ main() {
 
     banner
     check_dependencies
+
+    # Extract feature name
+    local feature_name=$(basename "$(dirname "$STORIES_FILE")")
+
+    # Initialize structured logging
+    if [[ "$STRUCTURED_LOGGING" == "true" ]]; then
+        init_logger "$feature_name"
+        log_info "Orchestrator started" "{\"stories_file\": \"$STORIES_FILE\", \"max_iterations\": $MAX_ITERATIONS_PER_STORY}"
+    fi
+
+    # Initialize cost tracking
+    if [[ "$COST_TRACKING" == "true" ]]; then
+        init_cost_tracking "$feature_name"
+        log "${CYAN}Cost tracking enabled (budget: \$$BUDGET_LIMIT)${NC}"
+    fi
+
+    # Initialize checkpoint system
+    if [[ "$CHECKPOINT_ENABLED" == "true" ]]; then
+        init_checkpoint "$feature_name" "$BUDGET_LIMIT"
+        log "${CYAN}Checkpoint initialized for: $feature_name${NC}"
+        get_checkpoint_summary
+    fi
+
     run_all_stories
 }
 
