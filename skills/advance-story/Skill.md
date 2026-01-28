@@ -26,7 +26,7 @@ After you've completed a user story and output its completion promise, use this 
 
 ```bash
 # Find the stories JSON file
-STORIES_FILE=".claude/ralph/specs/[feature-name]/stories.json"
+STORIES_FILE="ralph/specs/[feature-name]/stories.json"
 
 # Mark current story as completed
 jq '(.user_stories[] | select(.id == "CURRENT_STORY_ID") | .status) = "completed"' "$STORIES_FILE" > tmp.json && mv tmp.json "$STORIES_FILE"
@@ -59,5 +59,5 @@ For best results, start a new Claude session for the next story to get fresh con
 Use the orchestrator script for fully automated multi-story execution:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh .claude/ralph/specs/[feature]/stories.json
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh ralph/specs/[feature]/stories.json
 ```

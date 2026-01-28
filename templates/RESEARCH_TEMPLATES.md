@@ -447,7 +447,7 @@ research/ui-ux/
 
 ## Research Synthesis Template
 
-Save to: `.claude/ralph/specs/[feature]/research-synthesis.md`
+Save to: `ralph/specs/[feature]/research-synthesis.md`
 
 ```markdown
 # Research Synthesis: [Feature Name]

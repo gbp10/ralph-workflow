@@ -9,12 +9,12 @@ arguments: PROMPT --max-iterations N --completion-promise "TEXT"
 Starting Ralph loop with your task...
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/scripts/setup-ralph-loop.sh" $ARGUMENTS
+"${CLAUDE_PLUGIN_ROOT}/scripts/ralph-loop.sh" $ARGUMENTS
 ```
 
 ## How It Works
 
-1. Creates `.claude/ralph/state/loop.local.md` state file with your prompt
+1. Creates `ralph/state/loop.local.md` state file with your prompt
 2. The Stop hook intercepts exit attempts
 3. Your same prompt is fed back, but you see modified files from previous iteration
 4. Loop continues until completion promise detected or max iterations reached

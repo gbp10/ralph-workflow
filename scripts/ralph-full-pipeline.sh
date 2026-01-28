@@ -16,7 +16,7 @@ set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
 PROJECT_DIR="$(pwd)"
-RALPH_DIR="$PROJECT_DIR/.claude/ralph"
+RALPH_DIR="$PROJECT_DIR/ralph"
 LOG_FILE="$RALPH_DIR/state/pipeline.log"
 
 # Colors
@@ -190,7 +190,7 @@ $PROMPT
 
 Feature name: $FEATURE_NAME
 
-Save the PRD to: .claude/ralph/specs/$FEATURE_NAME/requirements.md
+Save the PRD to: ralph/specs/$FEATURE_NAME/requirements.md
 
 Follow the /create-prd skill: research the codebase first, then write the PRD.
 
@@ -200,7 +200,7 @@ When complete, output: <promise>PRD COMPLETE</promise>"
     echo "$prd_prompt" | claude --dangerously-skip-permissions --print 2>&1 | tee -a "$LOG_FILE"
 
     # Verify PRD was created
-    if [[ -f "$PROJECT_DIR/.claude/ralph/specs/$FEATURE_NAME/requirements.md" ]]; then
+    if [[ -f "$PROJECT_DIR/ralph/specs/$FEATURE_NAME/requirements.md" ]]; then
         log "${GREEN}✓ Phase 1 Complete: PRD created${NC}"
     else
         log "${RED}✗ Phase 1 Failed: PRD not found${NC}"
@@ -217,7 +217,7 @@ run_phase_2_solution() {
     phase_banner 2 "Solution Design (/design-solution)"
 
     local solution_prompt="Design the implementation solution for the PRD at:
-.claude/ralph/specs/$FEATURE_NAME/requirements.md
+ralph/specs/$FEATURE_NAME/requirements.md
 
 Follow the /design-solution skill:
 1. Phase 1: Complete ALL 9 research areas (codebase patterns, architecture, database, API, dependencies, security, performance, prior art, UI/UX)
@@ -225,9 +225,9 @@ Follow the /design-solution skill:
 3. Phase 3: Create the Implementation Blueprint
 
 Save outputs to:
-- Research files: .claude/ralph/specs/$FEATURE_NAME/research/
-- Synthesis: .claude/ralph/specs/$FEATURE_NAME/research-synthesis.md
-- Blueprint: .claude/ralph/specs/$FEATURE_NAME/implementation-blueprint.md
+- Research files: ralph/specs/$FEATURE_NAME/research/
+- Synthesis: ralph/specs/$FEATURE_NAME/research-synthesis.md
+- Blueprint: ralph/specs/$FEATURE_NAME/implementation-blueprint.md
 
 When complete, output: <promise>BLUEPRINT COMPLETE</promise>"
 
@@ -235,7 +235,7 @@ When complete, output: <promise>BLUEPRINT COMPLETE</promise>"
     echo "$solution_prompt" | claude --dangerously-skip-permissions --print 2>&1 | tee -a "$LOG_FILE"
 
     # Verify blueprint was created
-    if [[ -f "$PROJECT_DIR/.claude/ralph/specs/$FEATURE_NAME/implementation-blueprint.md" ]]; then
+    if [[ -f "$PROJECT_DIR/ralph/specs/$FEATURE_NAME/implementation-blueprint.md" ]]; then
         log "${GREEN}✓ Phase 2 Complete: Blueprint created${NC}"
     else
         log "${RED}✗ Phase 2 Failed: Blueprint not found${NC}"
@@ -253,7 +253,7 @@ run_phase_3_stories() {
 
     local stories_prompt="Convert the Implementation Blueprint to user stories.
 
-Blueprint: .claude/ralph/specs/$FEATURE_NAME/implementation-blueprint.md
+Blueprint: ralph/specs/$FEATURE_NAME/implementation-blueprint.md
 
 Follow the /solution-to-stories skill:
 1. Validate blueprint has all required sections
@@ -262,7 +262,7 @@ Follow the /solution-to-stories skill:
 4. Group stories by architectural layer (Data → Service → API → UI)
 5. Estimate token budgets
 
-Save to: .claude/ralph/specs/$FEATURE_NAME/stories.json
+Save to: ralph/specs/$FEATURE_NAME/stories.json
 
 When complete, output: <promise>STORIES COMPLETE</promise>"
 
@@ -270,11 +270,11 @@ When complete, output: <promise>STORIES COMPLETE</promise>"
     echo "$stories_prompt" | claude --dangerously-skip-permissions --print 2>&1 | tee -a "$LOG_FILE"
 
     # Verify stories were created
-    if [[ -f "$PROJECT_DIR/.claude/ralph/specs/$FEATURE_NAME/stories.json" ]]; then
+    if [[ -f "$PROJECT_DIR/ralph/specs/$FEATURE_NAME/stories.json" ]]; then
         log "${GREEN}✓ Phase 3 Complete: Stories generated${NC}"
         # Validate JSON
-        if jq . "$PROJECT_DIR/.claude/ralph/specs/$FEATURE_NAME/stories.json" > /dev/null 2>&1; then
-            local story_count=$(jq '.stories | length' "$PROJECT_DIR/.claude/ralph/specs/$FEATURE_NAME/stories.json")
+        if jq . "$PROJECT_DIR/ralph/specs/$FEATURE_NAME/stories.json" > /dev/null 2>&1; then
+            local story_count=$(jq '.stories | length' "$PROJECT_DIR/ralph/specs/$FEATURE_NAME/stories.json")
             log "${GREEN}  → $story_count user stories created${NC}"
         else
             log "${RED}  ⚠ Warning: Stories JSON may be invalid${NC}"
@@ -293,7 +293,7 @@ run_phase_4_execute() {
 
     phase_banner 4 "Execution (ralph-orchestrator)"
 
-    local stories_file="$PROJECT_DIR/.claude/ralph/specs/$FEATURE_NAME/stories.json"
+    local stories_file="$PROJECT_DIR/ralph/specs/$FEATURE_NAME/stories.json"
 
     if [[ ! -f "$stories_file" ]]; then
         log "${RED}Error: Stories file not found: $stories_file${NC}"
@@ -317,10 +317,10 @@ summary() {
     log "${CYAN}Feature: $FEATURE_NAME${NC}"
     log ""
     log "${CYAN}Artifacts created:${NC}"
-    log "  📄 PRD:       .claude/ralph/specs/$FEATURE_NAME/requirements.md"
-    log "  🔬 Research:  .claude/ralph/specs/$FEATURE_NAME/research/"
-    log "  📋 Blueprint: .claude/ralph/specs/$FEATURE_NAME/implementation-blueprint.md"
-    log "  📝 Stories:   .claude/ralph/specs/$FEATURE_NAME/stories.json"
+    log "  📄 PRD:       ralph/specs/$FEATURE_NAME/requirements.md"
+    log "  🔬 Research:  ralph/specs/$FEATURE_NAME/research/"
+    log "  📋 Blueprint: ralph/specs/$FEATURE_NAME/implementation-blueprint.md"
+    log "  📝 Stories:   ralph/specs/$FEATURE_NAME/stories.json"
     log ""
     log "${CYAN}Log file: $LOG_FILE${NC}"
     log ""

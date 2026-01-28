@@ -8,7 +8,7 @@ description: Cancel active Ralph Wiggum loop
 Checking for active Ralph loop...
 
 ```bash
-RALPH_STATE_FILE=".claude/ralph/state/loop.local.md"
+RALPH_STATE_FILE="ralph/state/loop.local.md"
 
 if [[ -f "$RALPH_STATE_FILE" ]]; then
   ITERATION=$(grep '^iteration:' "$RALPH_STATE_FILE" | sed 's/iteration: *//')

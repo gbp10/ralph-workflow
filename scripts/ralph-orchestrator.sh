@@ -24,6 +24,7 @@ CURRENT_TASK="$RALPH_DIR/state/current-task.md"
 LOG_FILE="$RALPH_DIR/state/orchestrator.log"
 MAX_ITERATIONS_PER_STORY=${MAX_ITERATIONS:-50}
 BUDGET_LIMIT=${BUDGET_LIMIT:-10.00}
+USE_LAYER_AGENTS=${USE_LAYER_AGENTS:-true}  # Set to false to disable layer agent delegation
 
 # Source checkpoint library
 source "$SCRIPT_DIR/lib/checkpoint.sh" 2>/dev/null || {
@@ -85,9 +86,12 @@ log() {
 
 banner() {
     local stories_name=$(basename "$STORIES_FILE" .json)
+    local agent_mode="Direct Execution"
+    [[ "$USE_LAYER_AGENTS" == "true" ]] && agent_mode="Layer Agent Delegation"
+
     log "${BLUE}╔═══════════════════════════════════════════════════════════╗${NC}"
-    log "${BLUE}║           Ralph Wiggum Orchestrator v2.0                  ║${NC}"
-    log "${BLUE}║           Fresh Context Per Iteration                     ║${NC}"
+    log "${BLUE}║           Ralph Wiggum Orchestrator v2.1                  ║${NC}"
+    log "${BLUE}║           $agent_mode                      ${NC}"
     log "${BLUE}╠═══════════════════════════════════════════════════════════╣${NC}"
     log "${BLUE}║ Stories: ${CYAN}$stories_name${NC}"
     log "${BLUE}╚═══════════════════════════════════════════════════════════╝${NC}"
@@ -142,6 +146,17 @@ get_next_story() {
     " "$STORIES_FILE"
 }
 
+get_layer_agent() {
+    local layer=$1
+    case "$layer" in
+        data)    echo "ralph-workflow:ralph-data-layer" ;;
+        service) echo "ralph-workflow:ralph-service-layer" ;;
+        api)     echo "ralph-workflow:ralph-api-layer" ;;
+        ui)      echo "ralph-workflow:ralph-ui-layer" ;;
+        *)       echo "" ;;  # No agent for unknown layers
+    esac
+}
+
 generate_task_file() {
     local story_id=$1
     log "${YELLOW}Generating CURRENT_TASK.md for $story_id...${NC}"
@@ -156,6 +171,9 @@ generate_task_file() {
     local priority=$(echo "$story_data" | jq -r '.priority')
     local story_num=$(get_story_position "$story_id")
     local total=$(get_total_stories)
+
+    # Get the appropriate layer agent
+    local layer_agent=$(get_layer_agent "$layer")
 
     # Extract acceptance criteria as formatted text
     local acceptance_criteria=$(echo "$story_data" | jq -r '
@@ -196,52 +214,30 @@ generate_task_file() {
         end
     ' "$STORIES_FILE")
 
-    cat > "$CURRENT_TASK" << EOF
-# Current Ralph Task: $story_id - $title
+    # Build the task content that will be passed to the agent
+    local task_content="# Story: $story_id - $title
 
 ## Story $story_num of $total | Layer: $layer | Priority: $priority
 
----
-
 ## User Story
-
 $user_story
 
----
-
 ## Acceptance Criteria
-
 $acceptance_criteria
 
----
-
 ## Files to Create/Modify
-
 $files
 
----
-
 ## Constraints
-
 Applicable constraints: $constraints
 
-<details>
-<summary>Global Constraints Reference</summary>
-
+## Global Constraints Reference
 $global_constraints
 
-</details>
-
----
-
 ## Dependencies
-
 $dependencies
 
----
-
 ## Instructions
-
 **CRITICAL: This is an AUTONOMOUS execution. DO NOT ask questions - make reasonable decisions and proceed.**
 
 1. Read and understand the user story and acceptance criteria
@@ -262,6 +258,57 @@ $dependencies
 - Document assumptions in your completion summary
 - Proceed directly to implementation
 
+## Completion
+When ALL acceptance criteria are met and the implementation is complete, output:
+<promise>$story_id COMPLETE</promise>"
+
+    # Generate the orchestration prompt based on whether we have a layer agent
+    if [[ -n "$layer_agent" ]] && [[ "$USE_LAYER_AGENTS" != "false" ]]; then
+        # USE LAYER AGENT via Task tool
+        log "${CYAN}  → Will delegate to layer agent: $layer_agent${NC}"
+        cat > "$CURRENT_TASK" << EOF
+# Ralph Orchestrator Task: Execute $story_id via Layer Agent
+
+You MUST use the Task tool to delegate this story to the specialized layer agent.
+
+## Agent Delegation Instructions
+
+**IMMEDIATELY** invoke the Task tool with these EXACT parameters:
+
+\`\`\`
+Tool: Task
+Parameters:
+  - description: "Execute $story_id ($layer layer)"
+  - subagent_type: "$layer_agent"
+  - prompt: (the full task content below)
+\`\`\`
+
+## Task Content to Pass to Agent
+
+$task_content
+
+---
+
+## CRITICAL INSTRUCTIONS
+
+1. **DO NOT** attempt to implement this yourself
+2. **DO** use the Task tool to delegate to \`$layer_agent\`
+3. **WAIT** for the agent to complete
+4. **VERIFY** the agent outputs \`<promise>$story_id COMPLETE</promise>\`
+5. **RELAY** the completion promise in your response
+
+When the layer agent completes successfully, output:
+
+<promise>$story_id COMPLETE</promise>
+
+---
+EOF
+    else
+        # DIRECT EXECUTION (no layer agent)
+        log "${YELLOW}  → Direct execution (no layer agent for layer: $layer)${NC}"
+        cat > "$CURRENT_TASK" << EOF
+$task_content
+
 ---
 
 ## Completion Promise
@@ -272,6 +319,7 @@ When ALL acceptance criteria are met and the implementation is complete, output:
 
 ---
 EOF
+    fi
 
     log "${GREEN}✓ Generated task file for $story_id${NC}"
 }
@@ -484,10 +532,20 @@ ARGUMENTS:
 ENVIRONMENT:
   MAX_ITERATIONS      Max iterations per story (default: 50)
   BUDGET_LIMIT        Max cost in USD before stopping (default: 10.00)
+  USE_LAYER_AGENTS    Delegate to layer-specialized agents (default: true)
   CHECKPOINT_ENABLED  Enable checkpoint/resume (default: true)
   STRUCTURED_LOGGING  Enable JSON logging (default: true)
   COST_TRACKING       Enable cost tracking (default: true)
   LOG_LEVEL           Log level: DEBUG, INFO, WARN, ERROR (default: INFO)
+
+LAYER AGENTS:
+  When USE_LAYER_AGENTS=true (default), stories are delegated to specialized agents:
+    - data layer    → ralph-workflow:ralph-data-layer
+    - service layer → ralph-workflow:ralph-service-layer
+    - api layer     → ralph-workflow:ralph-api-layer
+    - ui layer      → ralph-workflow:ralph-ui-layer
+
+  Each agent has focused context for its architectural layer, improving quality.
 
 OUTPUT LOCATIONS:
   Stories:     ralph/specs/[feature]/stories.json

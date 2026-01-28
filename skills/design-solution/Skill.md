@@ -32,8 +32,8 @@ Without proper research, your blueprint will be based on assumptions, contaminat
 ## Phase 1: Mandatory Research
 
 ### Before You Start
-1. Verify PRD exists at `.claude/ralph/specs/[feature-name]/requirements.md`
-2. Create research directory: `.claude/ralph/specs/[feature-name]/research/`
+1. Verify PRD exists at `ralph/specs/[feature-name]/requirements.md`
+2. Create research directory: `ralph/specs/[feature-name]/research/`
 3. Read the PRD thoroughly to understand what needs to be built
 
 ### Research Areas (ALL REQUIRED)
@@ -62,37 +62,147 @@ Each research document must include:
 - Constraints discovered
 - Open questions
 
-### UI/UX Browser Research
+### UI/UX Browser Research (MANDATORY - Claude in Chrome Required)
 
-Analyze the PRD and generate investigation directives:
+> **CRITICAL:** UI/UX research MUST be performed using Claude in Chrome browser automation.
+> This is NOT optional. Code-based analysis alone is insufficient.
 
-**Type A: Explicit Screens** (from PRD requirements)
-```
-Required Screen Captures:
-1. [Screen Name] - Navigate to: [path] - Capture: [what to observe]
-2. [Screen Name] - Navigate to: [path] - Capture: [what to observe]
-```
+#### Browser Research Protocol
 
-**Type B: Flow-Based Investigation** (user journeys)
+**Step 1: Initialize Browser Session**
 ```
-Required Flow Traces:
-Flow: "[User action description]"
-1. Starting point: [where the flow begins]
-2. Each step: [capture screens along the way]
-3. Success/error states: [capture outcomes]
+1. mcp__claude-in-chrome__tabs_context_mcp (get current tabs)
+2. mcp__claude-in-chrome__tabs_create_mcp (create new tab if needed)
+3. mcp__claude-in-chrome__navigate to localhost:3000 or production URL
 ```
 
-Save screenshots to:
+**Step 2: Screenshot Current State**
+
+Capture all screens relevant to the feature:
 ```
-research/ui-ux/screenshots/
-├── screens/
-│   ├── 01-[screen-name].png
-│   └── ...
-├── flows/
-│   └── [flow-name]/
-│       ├── step-01-[description].png
-│       └── ...
-└── README.md
+For each screen:
+1. Navigate: mcp__claude-in-chrome__navigate
+2. Wait for load: mcp__claude-in-chrome__computer (action: wait, duration: 2)
+3. Screenshot: mcp__claude-in-chrome__computer (action: screenshot)
+4. Save to: research/ui-ux/screenshots/screens/[screen-name].png
+```
+
+**Step 3: Console Log Analysis**
+
+Check for existing errors and warnings:
+```
+mcp__claude-in-chrome__read_console_messages with:
+  - pattern: "error|Error|warning|Warning|fail|Failed|undefined|null"
+  - onlyErrors: false (capture warnings too)
+
+Document in analysis.md:
+- Existing console errors
+- React hydration warnings
+- Network-related messages
+- Any concerning patterns
+```
+
+**Step 4: Network Activity Baseline**
+
+Capture current API behavior:
+```
+mcp__claude-in-chrome__read_network_requests with:
+  - urlPattern: "/api/"
+
+Document in analysis.md:
+- API endpoints being called
+- Response times
+- Failed requests (4xx, 5xx)
+- Request patterns
+```
+
+**Step 5: Flow-Based Investigation**
+
+Trace user journeys relevant to the PRD:
+```
+For each flow:
+1. Start at entry point
+2. Capture screenshot at each step
+3. Monitor console for errors during flow
+4. Monitor network for API calls during flow
+5. Capture success/error states
+```
+
+**Step 6: Responsive Analysis**
+
+Test at multiple viewport sizes:
+```
+mcp__claude-in-chrome__resize_window with:
+  - Desktop: width: 1920, height: 1080
+  - Tablet: width: 1024, height: 768
+  - Mobile: width: 375, height: 812
+
+Screenshot each viewport size for key screens.
+```
+
+#### Output Structure
+
+Save all browser research to:
+```
+research/ui-ux/
+├── analysis.md              # Main analysis document
+├── console-baseline.md      # Console errors/warnings found
+├── network-baseline.md      # API calls and patterns
+└── screenshots/
+    ├── screens/
+    │   ├── desktop/
+    │   │   ├── 01-[screen-name].png
+    │   │   └── ...
+    │   ├── tablet/
+    │   │   └── ...
+    │   └── mobile/
+    │       └── ...
+    ├── flows/
+    │   └── [flow-name]/
+    │       ├── step-01-[description].png
+    │       └── ...
+    └── README.md
+```
+
+#### Analysis Document Template
+
+```markdown
+# UI/UX Browser Research: [Feature Name]
+
+## Current State Screenshots
+[List all captured screens with descriptions]
+
+## Console Analysis
+- Existing Errors: [count and descriptions]
+- Warnings: [count and descriptions]
+- Notable Logs: [any relevant console output]
+
+## Network Analysis
+- Active API Endpoints: [list]
+- Average Response Times: [times]
+- Failed Requests: [list any failures]
+- Authentication Pattern: [observed auth flow]
+
+## User Flow Analysis
+[For each traced flow:]
+### Flow: [Name]
+- Entry Point: [screen]
+- Steps: [numbered list with screenshots]
+- Console Activity During Flow: [observations]
+- Network Activity During Flow: [API calls made]
+- Exit State: [success/error]
+
+## Responsive Behavior
+- Desktop (1920px): [observations]
+- Tablet (1024px): [observations]
+- Mobile (375px): [observations]
+- Breakpoint Issues: [any problems found]
+
+## UI/UX Constraints Discovered
+1. [Constraint from visual analysis]
+2. [Constraint from console errors]
+3. [Constraint from network patterns]
+4. [Constraint from responsive issues]
 ```
 
 ### Checkpoint 1: Research Complete
@@ -108,8 +218,14 @@ Before proceeding, verify ALL research files exist:
 □ research/security.md
 □ research/performance.md
 □ research/prior-art.md
-□ research/ui-ux/analysis.md
-□ research/ui-ux/screenshots/ (with README.md)
+
+UI/UX Browser Research (MANDATORY):
+□ research/ui-ux/analysis.md (with console + network analysis)
+□ research/ui-ux/console-baseline.md
+□ research/ui-ux/network-baseline.md
+□ research/ui-ux/screenshots/screens/ (desktop, tablet, mobile)
+□ research/ui-ux/screenshots/flows/ (user journey screenshots)
+□ research/ui-ux/screenshots/README.md
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✓ CHECKPOINT 1 PASSED → Proceed to Synthesis
 ```
@@ -147,7 +263,7 @@ Gather all constraints from research into categories:
 
 ### Synthesis Document
 
-Save to: `.claude/ralph/specs/[feature-name]/research-synthesis.md`
+Save to: `ralph/specs/[feature-name]/research-synthesis.md`
 
 ```markdown
 # Research Synthesis: [Feature Name]
@@ -197,7 +313,7 @@ Design the solution architecture layer by layer, producing actionable guidance f
 
 Use template from: `${CLAUDE_PLUGIN_ROOT}/templates/IMPLEMENTATION_BLUEPRINT.md`
 
-Save to: `.claude/ralph/specs/[feature-name]/implementation-blueprint.md`
+Save to: `ralph/specs/[feature-name]/implementation-blueprint.md`
 
 ### Required Sections
 
@@ -251,7 +367,7 @@ This section is CRITICAL. List every rule that `/solution-to-stories` must enfor
 After completing all phases, you will have created:
 
 ```
-.claude/ralph/specs/[feature-name]/
+ralph/specs/[feature-name]/
 ├── requirements.md              (input - already exists from /create-prd)
 ├── research/
 │   ├── codebase-patterns.md
@@ -262,11 +378,16 @@ After completing all phases, you will have created:
 │   ├── security.md
 │   ├── performance.md
 │   ├── prior-art.md
-│   └── ui-ux/
-│       ├── analysis.md
+│   └── ui-ux/                   (Browser Research - Claude in Chrome)
+│       ├── analysis.md          (main analysis with console + network)
+│       ├── console-baseline.md  (existing console errors/warnings)
+│       ├── network-baseline.md  (API patterns and baselines)
 │       └── screenshots/
 │           ├── screens/
-│           ├── flows/
+│           │   ├── desktop/     (1920px viewport)
+│           │   ├── tablet/      (1024px viewport)
+│           │   └── mobile/      (375px viewport)
+│           ├── flows/           (user journey screenshots)
 │           └── README.md
 ├── research-synthesis.md
 └── implementation-blueprint.md  (output - ready for /solution-to-stories)
@@ -291,5 +412,5 @@ This will consume the blueprint and generate INVEST-validated user stories with:
 Then execute with:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh .claude/ralph/specs/[feature-name]/stories.json
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh ralph/specs/[feature-name]/stories.json
 ```

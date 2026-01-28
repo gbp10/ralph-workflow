@@ -22,12 +22,12 @@ This skill consumes the Implementation Blueprint produced by `/design-solution` 
 Before generating stories, verify:
 
 ```
-□ Blueprint exists: .claude/ralph/specs/[feature]/implementation-blueprint.md
+□ Blueprint exists: ralph/specs/[feature]/implementation-blueprint.md
 □ Blueprint has Metadata section
 □ Blueprint has all 4 layer sections (Data, Service, API, UI)
 □ Blueprint has "Constraints for Story Generation" section
-□ Research folder exists: .claude/ralph/specs/[feature]/research/
-□ Research synthesis exists: .claude/ralph/specs/[feature]/research-synthesis.md
+□ Research folder exists: ralph/specs/[feature]/research/
+□ Research synthesis exists: ralph/specs/[feature]/research-synthesis.md
 ```
 
 **If validation fails:** Error with message to run `/design-solution` first.
@@ -36,7 +36,7 @@ Before generating stories, verify:
 
 ## Input: Implementation Blueprint
 
-Read the blueprint from: `.claude/ralph/specs/[feature-name]/implementation-blueprint.md`
+Read the blueprint from: `ralph/specs/[feature-name]/implementation-blueprint.md`
 
 Extract:
 1. **Suggested Files** per layer → populates `files_to_read`, `files_to_modify`, `files_to_create`
@@ -162,7 +162,7 @@ The JSON output includes new fields for blueprint integration:
 ## Output Location
 
 ```
-.claude/ralph/specs/[feature-name]/stories.json
+ralph/specs/[feature-name]/stories.json
 ```
 
 ---
@@ -182,7 +182,7 @@ See `${CLAUDE_PLUGIN_ROOT}/templates/PRD_TO_JSON.md` for:
 After stories are generated:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh .claude/ralph/specs/[feature-name]/stories.json
+${CLAUDE_PLUGIN_ROOT}/scripts/ralph-orchestrator.sh ralph/specs/[feature-name]/stories.json
 ```
 
 This executes stories via ralph-loop in the sequence defined by `execution_order`.

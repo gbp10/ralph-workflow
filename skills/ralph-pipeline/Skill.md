@@ -61,26 +61,31 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/ralph-full-pipeline.sh --feature-name "[feature-na
 ### Phase 1: PRD Creation
 - Invokes `/create-prd` logic
 - Researches codebase before writing
-- Outputs: `.claude/ralph/specs/[feature]/requirements.md`
+- Outputs: `ralph/specs/[feature]/requirements.md`
 - Completion signal: `<promise>PRD COMPLETE</promise>`
 
 ### Phase 2: Solution Design
 - Invokes `/design-solution` logic
 - Runs 9 mandatory research areas
 - Creates synthesis and blueprint
-- Outputs: `.claude/ralph/specs/[feature]/implementation-blueprint.md`
+- Outputs: `ralph/specs/[feature]/implementation-blueprint.md`
 - Completion signal: `<promise>BLUEPRINT COMPLETE</promise>`
 
 ### Phase 3: Story Conversion
 - Invokes `/solution-to-stories` logic
 - Validates blueprint
 - Creates INVEST-validated stories
-- Outputs: `.claude/ralph/specs/[feature]/stories.json`
+- Outputs: `ralph/specs/[feature]/stories.json`
 - Completion signal: `<promise>STORIES COMPLETE</promise>`
 
-### Phase 4: Execution
+### Phase 4: Execution (with Layer Agent Delegation)
 - Runs `ralph-orchestrator.sh`
-- Executes stories in layer order
+- **Delegates each story to specialized layer agents via Task tool:**
+  - `data` layer → `ralph-workflow:ralph-data-layer`
+  - `service` layer → `ralph-workflow:ralph-service-layer`
+  - `api` layer → `ralph-workflow:ralph-api-layer`
+  - `ui` layer → `ralph-workflow:ralph-ui-layer`
+- Each agent has focused context for its architectural layer
 - Uses `--dangerously-skip-permissions`
 - Auto-commits between stories
 - Completion signal: `<promise>[STORY-ID] COMPLETE</promise>` per story
@@ -109,7 +114,7 @@ If you already have some artifacts, skip phases:
 After completion:
 
 ```
-.claude/ralph/specs/[feature]/
+ralph/specs/[feature]/
 ├── requirements.md              # PRD
 ├── research/                    # 9 research documents
 │   ├── codebase-patterns.md
@@ -126,9 +131,32 @@ After completion:
 ├── research-synthesis.md        # Synthesis
 └── implementation-blueprint.md  # Blueprint
 
-.claude/ralph/
+ralph/
 ├── stories/[feature].json       # User stories
 └── ralph-pipeline.log           # Execution log
+```
+
+---
+
+## Layer Agent Delegation
+
+By default, the orchestrator delegates stories to specialized layer agents:
+
+| Story Layer | Agent | Specialization |
+|-------------|-------|----------------|
+| `data` | `ralph-workflow:ralph-data-layer` | Supabase, migrations, types |
+| `service` | `ralph-workflow:ralph-service-layer` | Business logic, utilities |
+| `api` | `ralph-workflow:ralph-api-layer` | Routes, validation, responses |
+| `ui` | `ralph-workflow:ralph-ui-layer` | React, Tailwind, accessibility |
+
+**Benefits:**
+- Focused context per layer (better quality)
+- Layer-specific patterns and best practices
+- Reduced token usage per story
+
+**To disable layer agents:**
+```bash
+USE_LAYER_AGENTS=false ./ralph-full-pipeline.sh "Feature description"
 ```
 
 ---
@@ -166,11 +194,11 @@ This will:
 
 ```bash
 # Watch the log file
-tail -f .claude/ralph/ralph-pipeline.log
+tail -f ralph/ralph-pipeline.log
 
 # Check current phase
-grep "PHASE" .claude/ralph/ralph-pipeline.log | tail -1
+grep "PHASE" ralph/ralph-pipeline.log | tail -1
 
 # Check story progress
-grep "COMPLETE" .claude/ralph/ralph-pipeline.log
+grep "COMPLETE" ralph/ralph-pipeline.log
 ```

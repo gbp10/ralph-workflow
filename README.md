@@ -55,9 +55,9 @@ ralph-workflow/
 
 | Phase | Skill | Input | Output |
 |-------|-------|-------|--------|
-| 1 | `/create-prd` | Feature idea | `.claude/ralph/specs/[feature]/requirements.md` |
-| 2 | `/design-solution` | PRD | `.claude/ralph/specs/[feature]/implementation-blueprint.md` |
-| 3 | `/solution-to-stories` | Blueprint | `.claude/ralph/specs/[feature]/stories.json` |
+| 1 | `/create-prd` | Feature idea | `ralph/specs/[feature]/requirements.md` |
+| 2 | `/design-solution` | PRD | `ralph/specs/[feature]/implementation-blueprint.md` |
+| 3 | `/solution-to-stories` | Blueprint | `ralph/specs/[feature]/stories.json` |
 | 4 | `ralph-orchestrator.sh` | Stories JSON | Implemented feature |
 
 ---
@@ -158,7 +158,7 @@ Research-first approach:
 3. Review existing documentation
 4. Write comprehensive PRD with SMART goals
 
-Output: `.claude/ralph/specs/[feature]/requirements.md`
+Output: `ralph/specs/[feature]/requirements.md`
 
 ### Phase 2: Design Solution (`/design-solution`)
 
@@ -183,7 +183,7 @@ Output: `.claude/ralph/specs/[feature]/requirements.md`
 - Constraints + Suggested Files per layer
 - Story sequencing recommendations
 
-Output: `.claude/ralph/specs/[feature]/implementation-blueprint.md`
+Output: `ralph/specs/[feature]/implementation-blueprint.md`
 
 ### Phase 3: Convert to Stories (`/solution-to-stories`)
 
@@ -196,7 +196,7 @@ Blueprint-aware conversion:
 6. Group stories by architectural layer
 7. Set execution order based on blueprint
 
-Output: `.claude/ralph/specs/[feature]/stories.json`
+Output: `ralph/specs/[feature]/stories.json`
 
 ### Phase 4: Execute with Ralph
 
@@ -303,7 +303,7 @@ MAX_ITERATIONS=50  # Max iterations per story (default: 50)
 
 ### State File
 
-Ralph stores state in `.claude/ralph/state/loop.local.md`:
+Ralph stores state in `ralph/state/loop.local.md`:
 ```yaml
 ---
 active: true
