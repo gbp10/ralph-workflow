@@ -148,8 +148,11 @@ For each story, the skill MUST:
 
 ## Enhanced JSON Schema
 
+**CRITICAL:** The top-level array key MUST be `"stories"` (not `"user_stories"`). The orchestrator reads `.stories` from the JSON file. Using any other key name will cause execution to fail.
+
 The JSON output includes new fields for blueprint integration:
 
+- `stories` - **Required key name** for the story array (the orchestrator reads `.stories`)
 - `blueprint_path` - Reference to the implementation blueprint
 - `blueprint_metadata` - Constraints and assumptions from blueprint
 - `story_groups` - Stories organized by layer

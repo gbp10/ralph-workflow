@@ -266,7 +266,7 @@ execution_tokens =
     "Existing functionality unchanged (no regression)"
   ],
 
-  "user_stories": [
+  "stories": [
     {
       "id": "US-001",
       "title": "User Story Title",

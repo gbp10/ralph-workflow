@@ -166,7 +166,7 @@ generate_task_file() {
 
     local story_data=$(jq -r ".stories[] | select(.id == \"$story_id\")" "$STORIES_FILE")
     local title=$(echo "$story_data" | jq -r '.title')
-    local user_story=$(echo "$story_data" | jq -r '.userStory')
+    local user_story=$(echo "$story_data" | jq -r 'if .userStory then .userStory elif .user_story then (if (.user_story | type) == "object" then "As a \(.user_story.role), I want \(.user_story.goal), so that \(.user_story.benefit)." else .user_story end) else .title end')
     local layer=$(echo "$story_data" | jq -r '.layer')
     local priority=$(echo "$story_data" | jq -r '.priority')
     local story_num=$(get_story_position "$story_id")
@@ -175,39 +175,53 @@ generate_task_file() {
     # Get the appropriate layer agent
     local layer_agent=$(get_layer_agent "$layer")
 
-    # Extract acceptance criteria as formatted text
+    # Extract acceptance criteria as formatted text (handles both camelCase and snake_case, and .then as string or array)
     local acceptance_criteria=$(echo "$story_data" | jq -r '
-        .acceptanceCriteria | map(
+        (.acceptanceCriteria // .acceptance_criteria // []) | map(
             "### " + .scenario + "\n" +
             "**Given** " + .given + "\n" +
             "**When** " + .when + "\n" +
-            "**Then** " + .then + "\n"
+            "**Then** " + (if (.then | type) == "array" then (.then | join("; and ")) else .then end) + "\n"
         ) | join("\n")
     ')
 
-    # Extract constraints
-    local constraints=$(echo "$story_data" | jq -r '.constraints | join(", ")')
-
-    # Extract files to create/modify
-    local files=$(echo "$story_data" | jq -r '
-        .files | map("- [" + .action + "] `" + .path + "`") | join("\n")
-    ')
-
-    # Extract dependencies
-    local dependencies=$(echo "$story_data" | jq -r '
-        if .dependencies | length > 0 then
-            .dependencies | join(", ")
-        else
-            "None"
+    # Extract constraints (supports both .constraints array and blueprint_reference)
+    local constraints=$(echo "$story_data" | jq -r '
+        if .constraints and (.constraints | length > 0) then (.constraints | join(", "))
+        elif .blueprint_reference then .blueprint_reference
+        else "See blueprint"
         end
     ')
 
-    # Get global constraints from the file if available
+    # Extract files to create/modify (supports both .files array and separate fields)
+    local files=$(echo "$story_data" | jq -r '
+        if .files then
+            .files | map("- [" + .action + "] `" + .path + "`") | join("\n")
+        else
+            (
+                ((.files_to_read // []) | map("- [read] `" + . + "`")) +
+                ((.files_to_modify // []) | map("- [modify] `" + . + "`")) +
+                ((.files_to_create // []) | map("- [create] `" + . + "`"))
+            ) | join("\n")
+        end
+    ')
+
+    # Extract dependencies (supports both .dependencies and .depends_on)
+    local dependencies=$(echo "$story_data" | jq -r '
+        ((.dependencies // .depends_on // []) | if length > 0 then join(", ") else "None" end)
+    ')
+
+    # Get global constraints from the file if available (supports both camelCase and snake_case)
     local global_constraints=$(jq -r '
         if .globalConstraints then
             .globalConstraints | to_entries | map(
                 "**" + .key + ":**\n" +
                 (.value | map("- " + .id + ": " + .rule) | join("\n"))
+            ) | join("\n\n")
+        elif .global_constraints then
+            .global_constraints | to_entries | map(
+                "**" + .key + ":**\n" +
+                (.value | map("- " + (.id // "") + ": " + (.rule // "")) | join("\n"))
             ) | join("\n\n")
         else
             ""
