@@ -10,21 +10,26 @@
 #   log_info "Story started" '{"story_id": "STORY-001"}'
 #   log_error "Build failed" '{"exit_code": 1}'
 
-set -euo pipefail
+# NOTE: Do not set shell options here — let the parent script control them.
+# macOS ships bash 3.2 which does not support declare -A (associative arrays).
 
 # Directory for log files
 LOG_DIR="${RALPH_DIR:-$(pwd)/ralph}/logs"
-LOG_FILE=""
+# Don't overwrite LOG_FILE if already set by parent
+LOG_FILE="${LOG_FILE:-}"
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
 
-# Log levels (numeric for comparison)
-declare -A LOG_LEVELS=(
-    ["DEBUG"]=0
-    ["INFO"]=1
-    ["WARN"]=2
-    ["ERROR"]=3
-    ["FATAL"]=4
-)
+# Log level lookup (bash 3.2 compatible — no associative arrays)
+_log_level_num() {
+    case "${1:-INFO}" in
+        DEBUG) echo 0 ;;
+        INFO)  echo 1 ;;
+        WARN)  echo 2 ;;
+        ERROR) echo 3 ;;
+        FATAL) echo 4 ;;
+        *)     echo 1 ;;
+    esac
+}
 
 # Current context (set by caller)
 export CURRENT_COMPONENT="${CURRENT_COMPONENT:-orchestrator}"
@@ -58,9 +63,9 @@ _write_log() {
     local message="$2"
     local extra="${3:-{}}"
 
-    # Check log level threshold
-    local level_num="${LOG_LEVELS[$level]:-1}"
-    local threshold_num="${LOG_LEVELS[$LOG_LEVEL]:-1}"
+    # Check log level threshold (bash 3.2 compatible)
+    local level_num=$(_log_level_num "$level")
+    local threshold_num=$(_log_level_num "$LOG_LEVEL")
 
     if (( level_num < threshold_num )); then
         return 0

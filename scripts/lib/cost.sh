@@ -10,21 +10,28 @@
 #   track_story_cost "STORY-001" 12000 3500 "sonnet"
 #   get_total_cost
 
-set -euo pipefail
+# NOTE: Do not set shell options here — let the parent script control them.
+# macOS ships bash 3.2 which does not support declare -A (associative arrays).
 
 # Cost per 1K tokens (as of 2025-01)
-# Claude Sonnet 3.5/4
-declare -A COST_INPUT=(
-    ["opus"]=0.015
-    ["sonnet"]=0.003
-    ["haiku"]=0.00025
-)
+# Bash 3.2 compatible lookup functions
+_cost_input_rate() {
+    case "${1:-sonnet}" in
+        opus)   echo "0.015" ;;
+        sonnet) echo "0.003" ;;
+        haiku)  echo "0.00025" ;;
+        *)      echo "0.003" ;;
+    esac
+}
 
-declare -A COST_OUTPUT=(
-    ["opus"]=0.075
-    ["sonnet"]=0.015
-    ["haiku"]=0.00125
-)
+_cost_output_rate() {
+    case "${1:-sonnet}" in
+        opus)   echo "0.075" ;;
+        sonnet) echo "0.015" ;;
+        haiku)  echo "0.00125" ;;
+        *)      echo "0.015" ;;
+    esac
+}
 
 # Default model if not specified
 DEFAULT_MODEL="sonnet"
@@ -73,9 +80,9 @@ estimate_cost() {
     local output_tokens="${2:-0}"
     local model="${3:-$DEFAULT_MODEL}"
 
-    # Get cost rates for model
-    local input_rate="${COST_INPUT[$model]:-${COST_INPUT[sonnet]}}"
-    local output_rate="${COST_OUTPUT[$model]:-${COST_OUTPUT[sonnet]}}"
+    # Get cost rates for model (bash 3.2 compatible)
+    local input_rate=$(_cost_input_rate "$model")
+    local output_rate=$(_cost_output_rate "$model")
 
     # Calculate cost
     local input_cost=$(echo "scale=6; $input_tokens * $input_rate / 1000" | bc)

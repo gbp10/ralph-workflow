@@ -10,7 +10,7 @@
 #   save_checkpoint "STORY-001" "completed" 3 0.42
 #   resume_from_checkpoint  # Returns story_id to resume from
 
-set -euo pipefail
+# NOTE: Do not set shell options here — let the parent script control them.
 
 # Directory for checkpoint files
 CHECKPOINT_DIR="${RALPH_DIR:-$(pwd)/ralph}/state"
