@@ -1,15 +1,24 @@
 {
   "name": "ralph-workflow-local",
-  "displayName": "Ralph Workflow (Local)",
-  "description": "AI-driven development workflow with self-referential loops and PRD-to-execution pipelines",
-  "version": "2.0.0",
+  "owner": {
+    "name": "gbp10"
+  },
+  "metadata": {
+    "description": "AI-driven development workflow with layer-specialized agents and PRD-to-execution pipelines",
+    "version": "2.1.0"
+  },
   "plugins": [
     {
       "name": "ralph-workflow",
-      "displayName": "Ralph Workflow",
-      "description": "Complete AI-driven development workflow featuring self-referential iteration loops, research-first solution design, and PRD-to-execution pipelines",
-      "version": "2.0.0",
-      "path": ".."
+      "source": "./",
+      "description": "Complete AI-driven development workflow featuring layer-specialized agents, checkpoint/resume, structured logging, and PRD-to-execution pipelines",
+      "version": "2.1.0",
+      "author": {
+        "name": "gbp10"
+      },
+      "repository": "https://github.com/gbp10/ralph-workflow",
+      "license": "MIT",
+      "keywords": ["workflow", "automation", "prd", "stories", "development", "agents"]
     }
   ]
 }
