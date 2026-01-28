@@ -7,9 +7,5 @@
   },
   "repository": "https://github.com/gbp10/ralph-workflow",
   "license": "MIT",
-  "keywords": ["workflow", "automation", "prd", "stories", "development", "agents"],
-  "skills": "./skills/",
-  "commands": "./commands/",
-  "agents": "./agents/",
-  "hooks": "./hooks/hooks.json"
+  "keywords": ["workflow", "automation", "prd", "stories", "development", "agents"]
 }
