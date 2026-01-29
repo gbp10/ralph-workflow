@@ -311,11 +311,20 @@ When complete, output: <promise>STORIES COMPLETE</promise>"
     run_claude_with_retry "$stories_prompt" 3
 
     # Verify stories were created
-    if [[ -f "$PROJECT_DIR/.claude/ralph/specs/$FEATURE_NAME/stories.json" ]]; then
+    local stories_path="$PROJECT_DIR/.claude/ralph/specs/$FEATURE_NAME/stories.json"
+    if [[ -f "$stories_path" ]]; then
         log "${GREEN}✓ Phase 3 Complete: Stories generated${NC}"
         # Validate JSON
-        if jq . "$PROJECT_DIR/.claude/ralph/specs/$FEATURE_NAME/stories.json" > /dev/null 2>&1; then
-            local story_count=$(jq '.stories | length' "$PROJECT_DIR/.claude/ralph/specs/$FEATURE_NAME/stories.json")
+        if jq . "$stories_path" > /dev/null 2>&1; then
+            # Normalize: if JSON has "user_stories" but no "stories", rename key
+            # The orchestrator expects ".stories[]" — Claude sometimes generates ".user_stories[]"
+            if jq -e '.user_stories' "$stories_path" > /dev/null 2>&1 && ! jq -e '.stories' "$stories_path" > /dev/null 2>&1; then
+                log "${YELLOW}  ℹ Normalizing JSON key: user_stories → stories${NC}"
+                local tmp_file=$(mktemp)
+                jq '. + {stories: .user_stories} | del(.user_stories)' "$stories_path" > "$tmp_file"
+                mv "$tmp_file" "$stories_path"
+            fi
+            local story_count=$(jq '.stories | length' "$stories_path" 2>/dev/null || echo "0")
             log "${GREEN}  → $story_count user stories created${NC}"
         else
             log "${RED}  ⚠ Warning: Stories JSON may be invalid${NC}"
