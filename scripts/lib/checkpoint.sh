@@ -25,7 +25,7 @@ CHECKPOINT_NC='\033[0m'
 # Initialize checkpoint system for a feature
 init_checkpoint() {
     local feature="$1"
-    local budget_limit="${2:-10.00}"
+    local budget_limit="${2:-50.00}"
 
     mkdir -p "$CHECKPOINT_DIR"
     CHECKPOINT_FILE="$CHECKPOINT_DIR/checkpoint-${feature}.json"
@@ -71,11 +71,17 @@ save_checkpoint() {
 
     local tmp_file=$(mktemp)
 
+    # Sanitize numeric values for jq
+    local safe_iter=$(echo "${iterations:-0}" | tr -d '[:space:]')
+    local safe_cost=$(echo "${cost:-0}" | tr -d '[:space:]')
+    [[ "$safe_iter" =~ ^-?[0-9]*\.?[0-9]+$ ]] || safe_iter=0
+    [[ "$safe_cost" =~ ^-?[0-9]*\.?[0-9]+$ ]] || safe_cost=0
+
     # Update checkpoint with new story state
     jq --arg id "$story_id" \
        --arg s "$status" \
-       --argjson i "$iterations" \
-       --argjson c "$cost" \
+       --argjson i "$safe_iter" \
+       --argjson c "$safe_cost" \
        --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
        '
        .stories[$id] = {
@@ -217,7 +223,7 @@ EOF
 # Reset checkpoint for a feature (use with caution)
 reset_checkpoint() {
     local feature="$1"
-    local budget_limit="${2:-10.00}"
+    local budget_limit="${2:-50.00}"
 
     if [[ -n "$CHECKPOINT_FILE" ]] && [[ -f "$CHECKPOINT_FILE" ]]; then
         echo -e "${CHECKPOINT_YELLOW}Resetting checkpoint for: $feature${CHECKPOINT_NC}"

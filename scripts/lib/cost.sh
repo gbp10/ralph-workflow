@@ -112,16 +112,23 @@ track_story_cost() {
     TOTAL_OUTPUT_TOKENS=$((TOTAL_OUTPUT_TOKENS + output_tokens))
     TOTAL_COST_USD=$(echo "scale=6; $TOTAL_COST_USD + $cost" | bc)
 
+    # Sanitize all numeric values for jq --argjson
+    _safe_num_cost() {
+        local v="${1:-0}"
+        v=$(echo "$v" | tr -d '[:space:]')
+        [[ "$v" =~ ^-?[0-9]*\.?[0-9]+$ ]] && echo "$v" || echo "0"
+    }
+
     # Update file
     local tmp_file=$(mktemp)
     jq --arg id "$story_id" \
-       --argjson tin "$input_tokens" \
-       --argjson tout "$output_tokens" \
+       --argjson tin "$(_safe_num_cost "$input_tokens")" \
+       --argjson tout "$(_safe_num_cost "$output_tokens")" \
        --arg model "$model" \
-       --argjson cost "$cost" \
-       --argjson total_in "$TOTAL_INPUT_TOKENS" \
-       --argjson total_out "$TOTAL_OUTPUT_TOKENS" \
-       --argjson total_cost "$TOTAL_COST_USD" \
+       --argjson cost "$(_safe_num_cost "$cost")" \
+       --argjson total_in "$(_safe_num_cost "$TOTAL_INPUT_TOKENS")" \
+       --argjson total_out "$(_safe_num_cost "$TOTAL_OUTPUT_TOKENS")" \
+       --argjson total_cost "$(_safe_num_cost "$TOTAL_COST_USD")" \
        --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
        '
        .stories[$id] = (.stories[$id] // {input_tokens: 0, output_tokens: 0, cost_usd: 0, entries: []}) |
@@ -181,7 +188,7 @@ get_story_cost() {
 
 # Check if budget exceeded
 is_budget_exceeded() {
-    local budget="${1:-10.00}"
+    local budget="${1:-50.00}"
     local current=$(get_total_cost)
 
     if (( $(echo "$current >= $budget" | bc -l) )); then
@@ -237,7 +244,7 @@ get_cost_summary_json() {
 
 # Estimate remaining budget
 get_remaining_budget() {
-    local budget="${1:-10.00}"
+    local budget="${1:-50.00}"
     local current=$(get_total_cost)
     local remaining=$(echo "scale=6; $budget - $current" | bc)
 

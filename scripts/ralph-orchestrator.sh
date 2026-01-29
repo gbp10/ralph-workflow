@@ -23,7 +23,7 @@ RALPH_DIR="$PROJECT_DIR/ralph"
 CURRENT_TASK="$RALPH_DIR/state/current-task.md"
 LOG_FILE="$RALPH_DIR/state/orchestrator.log"
 MAX_ITERATIONS_PER_STORY=${MAX_ITERATIONS:-50}
-BUDGET_LIMIT=${BUDGET_LIMIT:-10.00}
+BUDGET_LIMIT=${BUDGET_LIMIT:-50.00}
 USE_LAYER_AGENTS=${USE_LAYER_AGENTS:-true}  # Set to false to disable layer agent delegation
 
 # Source checkpoint library

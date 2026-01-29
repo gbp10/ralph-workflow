@@ -57,11 +57,33 @@ get_log_file() {
     echo "$LOG_FILE"
 }
 
+# Safely coerce a value to a JSON number, defaulting to 0
+_safe_num() {
+    local val="${1:-0}"
+    # Strip whitespace and verify it's numeric
+    val=$(echo "$val" | tr -d '[:space:]')
+    if [[ "$val" =~ ^-?[0-9]*\.?[0-9]+$ ]]; then
+        echo "$val"
+    else
+        echo "0"
+    fi
+}
+
+# Safely coerce a value to valid JSON, defaulting to {}
+_safe_json() {
+    local val="${1:-{}}"
+    if echo "$val" | jq empty 2>/dev/null; then
+        echo "$val"
+    else
+        echo "{}"
+    fi
+}
+
 # Internal: Write structured log entry
 _write_log() {
     local level="$1"
     local message="$2"
-    local extra="${3:-{}}"
+    local raw_extra="${3:-{}}"
 
     # Check log level threshold (bash 3.2 compatible)
     local level_num=$(_log_level_num "$level")
@@ -70,6 +92,10 @@ _write_log() {
     if (( level_num < threshold_num )); then
         return 0
     fi
+
+    # Sanitize inputs for jq
+    local safe_iter=$(_safe_num "${CURRENT_ITERATION:-0}")
+    local safe_extra=$(_safe_json "$raw_extra")
 
     # Generate timestamp with milliseconds
     local timestamp=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -80,9 +106,9 @@ _write_log() {
         --arg lvl "$level" \
         --arg comp "$CURRENT_COMPONENT" \
         --arg sid "${CURRENT_STORY_ID:-}" \
-        --argjson iter "${CURRENT_ITERATION:-0}" \
+        --argjson iter "$safe_iter" \
         --arg msg "$message" \
-        --argjson extra "$extra" \
+        --argjson extra "$safe_extra" \
         '{
             timestamp: $ts,
             level: $lvl,
@@ -158,9 +184,9 @@ log_story_complete() {
     local cost_usd="${4:-0}"
 
     log_info "Story completed" "$(jq -cn \
-        --argjson iter "$iterations" \
-        --argjson dur "$duration_ms" \
-        --argjson cost "$cost_usd" \
+        --argjson iter "$(_safe_num "$iterations")" \
+        --argjson dur "$(_safe_num "$duration_ms")" \
+        --argjson cost "$(_safe_num "$cost_usd")" \
         '{event: "story_complete", iterations: $iter, duration_ms: $dur, cost_usd: $cost}'
     )"
 
@@ -174,7 +200,7 @@ log_story_failed() {
     local reason="${3:-unknown}"
 
     log_error "Story failed" "$(jq -cn \
-        --argjson iter "$iterations" \
+        --argjson iter "$(_safe_num "$iterations")" \
         --arg reason "$reason" \
         '{event: "story_failed", iterations: $iter, reason: $reason}'
     )"
@@ -195,9 +221,9 @@ log_iteration_complete() {
     local tokens_output="${4:-0}"
 
     log_debug "Iteration completed" "$(jq -cn \
-        --argjson dur "$duration_ms" \
-        --argjson tin "$tokens_input" \
-        --argjson tout "$tokens_output" \
+        --argjson dur "$(_safe_num "$duration_ms")" \
+        --argjson tin "$(_safe_num "$tokens_input")" \
+        --argjson tout "$(_safe_num "$tokens_output")" \
         '{event: "iteration_complete", duration_ms: $dur, tokens: {input: $tin, output: $tout}}'
     )"
 }
@@ -212,8 +238,8 @@ log_tool_use() {
     log_debug "Tool used" "$(jq -cn \
         --arg tool "$tool_name" \
         --arg file "$file_path" \
-        --argjson dur "$duration_ms" \
-        --argjson success "$success" \
+        --argjson dur "$(_safe_num "$duration_ms")" \
+        --argjson success "$(_safe_json "$success")" \
         '{event: "tool_use", tool: $tool, file: (if $file == "" then null else $file end), duration_ms: $dur, success: $success}'
     )"
 }
@@ -229,8 +255,8 @@ log_quality_gate() {
 
     _write_log "$level" "Quality gate: $gate_name" "$(jq -cn \
         --arg name "$gate_name" \
-        --argjson passed "$passed" \
-        --argjson details "$details" \
+        --argjson passed "$(_safe_json "$passed")" \
+        --argjson details "$(_safe_json "$details")" \
         '{event: "quality_gate", gate: $name, passed: $passed, details: $details}'
     )"
 }
@@ -285,7 +311,7 @@ rotate_logs() {
     local keep_days="${1:-7}"
 
     find "$LOG_DIR" -name "*.jsonl" -mtime +"$keep_days" -delete 2>/dev/null || true
-    log_info "Log rotation complete" "$(jq -cn --argjson days "$keep_days" '{keep_days: $days}')"
+    log_info "Log rotation complete" "$(jq -cn --argjson days "$(_safe_num "$keep_days")" '{keep_days: $days}')"
 }
 
 # Export logs to a file
